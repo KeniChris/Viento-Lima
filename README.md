@@ -4,22 +4,42 @@ El Hito 3 pronostica la concentración de PM2.5 a una hora en siete estaciones d
 
 ## Ejecutar el Hito 3
 
-Clona la rama `develop` y ejecuta los comandos desde la carpeta que contiene `codigo/` y `Hito3_PM25_Lima.ipynb`. Usa Python 3.12. El notebook abre las tablas verificadas con `RECALCULAR = False`. En Colab puede clonar la rama al arrancar. Activa el recálculo para reconstruir los resultados desde los insumos.
+Clona la rama `develop` y ejecuta los comandos desde la carpeta que contiene `codigo/` y `Hito3_PM25_Lima.ipynb`. El experimento publicado se ejecutó con Python 3.12. El notebook abre las tablas verificadas con `RECALCULAR = False`. En Colab puede clonar la rama al arrancar. Activa el recálculo para reconstruir los resultados desde los insumos.
 
-Copia los insumos del Hito 2 a `datos/` o apunta `--datos` a su carpeta:
+Descarga estos archivos de la carpeta de insumos del equipo enlazada en el informe. Crea `datos/` en la raíz de `Viento-Lima` y copia allí los archivos con estos nombres exactos. Puedes colocar el ZIP directamente en `datos/`.
 
 - `aire_lima_completo.csv`
 - `clima_era5_7_estaciones.parquet`
 - `poblacion_censo2017_7_distritos.csv`
 - `csv_complementarios_pm25_lima.zip`
 
+### Windows con PowerShell
+
+```powershell
+python -m venv .venv
+$pythonHito3 = ".\.venv\Scripts\python.exe"
+& $pythonHito3 -m pip install -r requirements.txt
+& $pythonHito3 -m codigo.actualizar_aire
+& $pythonHito3 -m codigo.viento
+& $pythonHito3 -m codigo.preparar
+& $pythonHito3 -m codigo.evaluar --hilos 4
+```
+
+El entorno virtual aísla las dependencias del proyecto de las del Python global. Si los insumos están en otra carpeta, añade `--datos "ruta de los insumos"` a `codigo.actualizar_aire` y `codigo.preparar`. El archivo de viento se busca en `datos/` por defecto. Puedes indicar otra ubicación con `--viento`.
+
+### Linux y macOS
+
 ```bash
+python -m venv .venv
+source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m codigo.actualizar_aire
 python -m codigo.viento
 python -m codigo.preparar
 python -m codigo.evaluar --hilos 4
 ```
+
+`codigo.evaluar` necesita `resultados/matriz_hito3.parquet`. Ejecuta primero `codigo.preparar` y comprueba que terminó antes de entrenar.
 
 `codigo.viento` descarga y limpia 449.736 registros IFS a 10 m desde enero de 2017 hasta abril de 2024. Puedes pasar CSV ya descargados con `--descargas`. `codigo.preparar` escribe `resultados/aire_senamhi_normalizado.parquet` con las horas UTC y Lima, las mediciones originales y sus faltantes. La matriz del modelo se genera a partir de esas horas corregidas.
 

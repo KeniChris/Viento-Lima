@@ -262,6 +262,11 @@ if __name__ == "__main__":
     parser.add_argument("--salida", type=Path, default=Path("resultados"))
     parser.add_argument("--hilos", type=int, default=4)
     args = parser.parse_args()
+    if not args.matriz.is_file():
+        parser.error(
+            f"Falta {args.matriz}. Ejecuta primero python -m codigo.preparar "
+            "o indica una matriz ya generada con --matriz."
+        )
     data = pd.read_parquet(args.matriz)
     result = evaluate_models(data, args.salida, args.hilos)
     print(json.dumps(result, indent=2, ensure_ascii=False))
