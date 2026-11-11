@@ -1,8 +1,8 @@
 # PM2.5 en Lima Metropolitana
 
-El Hito 3 pronostica la concentración de PM2.5 a una hora en siete estaciones del SENAMHI. Las horas del CSV original están en **UTC** y el PM2.5 se expresa en **µg/m³**. El cruce con OpenAQ verificó 112 de 112 pares de cuatro estaciones a la precisión publicada. Las fechas se convierten a `America/Lima` antes de cruzar la meteorología. El notebook del Hito 2 contiene el flujo previo con la conversión corregida.
+El proyecto pronostica la concentración horaria de PM2.5 en siete estaciones del SENAMHI. Las horas del CSV original están en **UTC** y el PM2.5 se expresa en **µg/m³**. El cruce con OpenAQ verificó 112 de 112 pares de cuatro estaciones a la precisión publicada. Las fechas se convierten a `America/Lima` antes de cruzar la meteorología.
 
-## Ejecutar el Hito 3
+## Reproducir los experimentos
 
 Clona la rama `develop` y ejecuta los comandos desde la carpeta que contiene `codigo/` y `Hito3_PM25_Lima.ipynb`. El experimento publicado se ejecutó con Python 3.12. El notebook abre las tablas verificadas con `RECALCULAR = False`. En Colab puede clonar la rama al arrancar. Activa el recálculo para reconstruir los resultados desde los insumos.
 
@@ -43,7 +43,7 @@ python -m codigo.evaluar --hilos 4
 
 `codigo.viento` descarga y limpia 449.736 registros IFS a 10 m desde enero de 2017 hasta abril de 2024. Puedes pasar CSV ya descargados con `--descargas`. `codigo.preparar` escribe `resultados/aire_senamhi_normalizado.parquet` con las horas UTC y Lima, las mediciones originales y sus faltantes. La matriz del modelo se genera a partir de esas horas corregidas.
 
-## Resultados principales
+## Comparación a una hora con horas corregidas
 
 | Modelo | MAE macro en validación | MAE global en prueba | RMSE en prueba |
 | --- | ---: | ---: | ---: |
@@ -64,6 +64,24 @@ python -m codigo.validar_extension --hilos 4
 ```
 
 `acceso_openaq_2024.csv` registra los archivos diarios obtenidos y los que devolvieron 404 o 503. `cobertura_openaq_2024.csv` y `soporte_extension_2024.csv` muestran el alcance por estación. La extensión aporta una prueba posterior parcial con el mismo horizonte.
+
+## Pronóstico directo a 1, 3 y 6 horas
+
+El experimento predice el cambio de PM2.5 desde la última medición. Compara persistencia, Ridge, XGBoost, HistGradientBoosting y un promedio de los dos modelos de boosting. Cada horizonte se selecciona por MAE medio por estación en tres validaciones temporales. Las métricas de error y cruces del percentil 95 se calculan sobre las mismas filas dentro de cada horizonte. Esta cohorte empieza en 2017 y usa requisitos de inclusión distintos a los de la comparación a una hora anterior.
+
+| Horizonte | Seleccionado en validación | MAE en prueba histórica | MAE de persistencia | Cruces altos anticipados |
+| --- | --- | ---: | ---: | ---: |
+| 1 h | Promedio XGBoost + HistGradientBoosting | 2,823 | 3,193 | 10 / 300 |
+| 3 h | XGBoost con viento local | 4,938 | 6,362 | 0 / 522 |
+| 6 h | XGBoost local | 5,762 | 8,529 | 0 / 623 |
+
+Se compara XGBoost con los mismos hiperparámetros y entradas incrementales. Agregar transporte de PM2.5 vecino cambia el MAE histórico en −0,0044, +0,0068 y +0,0084 µg/m³, respectivamente. Alinear los focos térmicos VIIRS con el viento cambia el MAE en −0,0046, +0,0113 y +0,0127 frente al conteo y FRP por distancia. La detección de picos sigue siendo limitada. El viento de archivo se usa como aproximación del estado meteorológico en la emisión. Un sistema en vivo requiere verificar cuándo se publica cada entrada.
+
+```powershell
+& $pythonHito3 -m codigo.pronosticar --focos --hilos 4
+```
+
+El equivalente en un entorno activo es `python -m codigo.pronosticar --focos --hilos 4`. Para repetir la comprobación posterior de cuatro estaciones, descarga las lecturas con `python -m codigo.actualizar_aire --extender` y añade `--extender` al comando de pronóstico. Usa otra carpeta con `--salida` si quieres conservar las tablas ya publicadas. El cuaderno muestra las métricas por horizonte y estación y los residuos con `RECALCULAR_HORIZONTES = False`. [Diccionario de datos y resultados](resultados/multihorizonte/diccionario.md)
 
 ## Diseño del experimento
 

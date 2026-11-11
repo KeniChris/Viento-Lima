@@ -86,8 +86,8 @@ def references(rows):
     }
 
 
-def score(rows, pred):
-    actual = rows[TARGET].to_numpy()
+def score(rows, pred, target=TARGET):
+    actual = rows[target].to_numpy()
     error = pred - actual
     absolute = pd.Series(np.abs(error), index=rows.index)
     return {
@@ -151,10 +151,13 @@ def episode_metrics(test, pred, thresholds):
     }
 
 
-def bootstrap_delta(test, a, b, n_resamples=2000):
-    difference = np.abs(a - test[TARGET].to_numpy()) - np.abs(b - test[TARGET].to_numpy())
+def bootstrap_delta(test, a, b, n_resamples=2000, target=TARGET):
+    difference = np.abs(a - test[target].to_numpy()) - np.abs(b - test[target].to_numpy())
     blocks = ((test[TIME] - test[TIME].min().floor("D")).dt.days // 7).to_numpy()
     totals = pd.DataFrame({"block": blocks, "error": difference}).groupby("block").error.agg(["sum", "size"])
+    if len(totals) < 2:
+        return {"delta_MAE": difference.mean(), "IC95_inferior": np.nan,
+                "IC95_superior": np.nan, "bloques_7_dias": len(totals)}
     choices = np.random.default_rng(SEED).integers(0, len(totals), size=(n_resamples, len(totals)))
     deltas = totals["sum"].to_numpy()[choices].sum(axis=1) / totals["size"].to_numpy()[choices].sum(axis=1)
     return {"delta_MAE": difference.mean(), "IC95_inferior": np.quantile(deltas, .025),
