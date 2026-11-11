@@ -185,8 +185,12 @@ def wind_components(speed, from_degrees):
 
 
 def station_geometry(origin, destination):
-    lat1, lon1 = np.deg2rad(STATIONS[origin])
-    lat2, lon2 = np.deg2rad(STATIONS[destination])
+    return geographic_geometry(STATIONS[origin], STATIONS[destination])
+
+
+def geographic_geometry(origin, destination):
+    lat1, lon1 = np.deg2rad(origin)
+    lat2, lon2 = np.deg2rad(destination)
     dlat, dlon = lat2 - lat1, lon2 - lon1
     a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
     distance_km = 2 * 6371.0088 * np.arcsin(np.sqrt(a))
