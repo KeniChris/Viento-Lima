@@ -57,19 +57,27 @@ FEATURES = {
     "vecinos": HITO2 + WIND + NEIGHBORS,
     "transporte": HITO2 + WIND + NEIGHBORS + TRANSPORT,
 }
+COMPLEMENT_ARCHIVE = "csv_complementarios_pm25_lima.zip"
+COMPLEMENT_SERIES = "datos_complementarios_pm25_2015_2024.csv"
+VEHICLE_CONTEXT = "tenencia_vehicular_7_distritos_censo2017.csv"
+
+
+def local_complement(data_dir, filename):
+    for folder in (data_dir, data_dir / "csv_complementarios_pm25_lima", data_dir / "datos_complementarios_pm25"):
+        candidate = folder / filename
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 @contextmanager
 def complement_file(data_dir, filename):
-    direct = data_dir / filename
-    nested = data_dir / "csv_complementarios_pm25_lima" / filename
-    extracted = data_dir / "datos_complementarios_pm25" / filename
-    for candidate in (direct, nested, extracted):
-        if candidate.is_file():
-            with candidate.open("rb") as stream:
-                yield stream
-            return
-    with ZipFile(data_dir / "csv_complementarios_pm25_lima.zip") as archive:
+    candidate = local_complement(data_dir, filename)
+    if candidate is not None:
+        with candidate.open("rb") as stream:
+            yield stream
+        return
+    with ZipFile(data_dir / COMPLEMENT_ARCHIVE) as archive:
         names = [name for name in archive.namelist() if Path(name).name == filename]
         if len(names) != 1:
             raise ValueError(f"Se necesita exactamente un archivo {filename} en el ZIP")
@@ -145,7 +153,7 @@ def local_features(air, meteo):
 
 
 def add_hito2_sources(frame, data_dir):
-    with complement_file(data_dir, "datos_complementarios_pm25_2015_2024.csv") as stream:
+    with complement_file(data_dir, COMPLEMENT_SERIES) as stream:
         extra = pd.read_csv(stream, usecols=KEY + WEATHER_EXTRA + FIRMS, parse_dates=[TIME])
     validate_hours(extra, "complementos del Hito 2")
     weather = frame.merge(extra[KEY + WEATHER_EXTRA], on=KEY, how="left", validate="one_to_one", indicator=True)
@@ -162,7 +170,7 @@ def add_hito2_sources(frame, data_dir):
     census[CENSUS[0]] = census.POBLACION_CENSADA_2017
     census[CENSUS[1]] = 100 * census.EDAD_0_4_2017 / census.POBLACION_CENSADA_2017
     census[CENSUS[2]] = 100 * census.EDAD_65_MAS_2017 / census.POBLACION_CENSADA_2017
-    with complement_file(data_dir, "tenencia_vehicular_7_distritos_censo2017.csv") as stream:
+    with complement_file(data_dir, VEHICLE_CONTEXT) as stream:
         vehicles = pd.read_csv(stream, usecols=[STATION] + VEHICLES)
     weather = weather.merge(census[[STATION] + CENSUS], on=STATION, how="left", validate="many_to_one")
     weather = weather.merge(vehicles, on=STATION, how="left", validate="many_to_one")
@@ -267,6 +275,25 @@ def spatial_features(air, wind):
 
 
 def prepare_dataset(data_dir, wind_path, output_dir):
+    required = [
+        data_dir / "aire_lima_completo.csv",
+        data_dir / "clima_era5_7_estaciones.parquet",
+        data_dir / "poblacion_censo2017_7_distritos.csv",
+        wind_path,
+    ]
+    missing = [path for path in required if not path.is_file()]
+    archive = data_dir / COMPLEMENT_ARCHIVE
+    if not archive.is_file() and any(
+        local_complement(data_dir, filename) is None for filename in (COMPLEMENT_SERIES, VEHICLE_CONTEXT)
+    ):
+        missing.append(archive)
+    if missing:
+        listing = "\n".join(f"  - {path}" for path in missing)
+        raise FileNotFoundError(
+            f"Faltan archivos para preparar la matriz:\n{listing}\n"
+            "Copia los insumos del equipo a datos/ o indica su carpeta con --datos. "
+            "Genera el archivo de viento con python -m codigo.viento o indica su ruta con --viento."
+        )
     air, air_audit = load_air(data_dir)
     wind, wind_audit = load_wind(wind_path)
     meteo = pd.read_parquet(data_dir / "clima_era5_7_estaciones.parquet", columns=KEY + METEO)
@@ -313,5 +340,8 @@ if __name__ == "__main__":
     parser.add_argument("--viento", type=Path, default=Path("datos") / WIND_FILE)
     parser.add_argument("--salida", type=Path, default=Path("resultados"))
     args = parser.parse_args()
-    model_data = prepare_dataset(args.datos, args.viento, args.salida)
+    try:
+        model_data = prepare_dataset(args.datos, args.viento, args.salida)
+    except FileNotFoundError as error:
+        parser.error(str(error))
     print(f"{len(model_data):,} filas preparadas, {len(FEATURES['transporte'])} predictores en el grupo completo")

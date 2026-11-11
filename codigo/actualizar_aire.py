@@ -74,6 +74,11 @@ def downloaded_readings(items):
 
 
 def verify_clock(raw_path, output_dir):
+    raw_path = Path(raw_path)
+    if not raw_path.is_file():
+        raise FileNotFoundError(
+            f"Falta {raw_path}. Copia el CSV del Hito 2 a datos/ o indica su carpeta con --datos."
+        )
     items = [(station, daily_key(location, day))
              for station, location in LOCATIONS.items() for day in CHECK_DAYS]
     public, _, _ = downloaded_readings(items)
@@ -143,6 +148,9 @@ if __name__ == "__main__":
     parser.add_argument("--salida", type=Path, default=Path("resultados"))
     parser.add_argument("--extender", action="store_true")
     args = parser.parse_args()
-    verify_clock(args.datos / "aire_lima_completo.csv", args.salida)
+    try:
+        verify_clock(args.datos / "aire_lima_completo.csv", args.salida)
+    except FileNotFoundError as error:
+        parser.error(str(error))
     if args.extender:
         download_extension(args.datos, args.salida)
