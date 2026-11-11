@@ -1,0 +1,2 @@
+horas_aire_original,zona_original_aire,zona_modelado,unidad_pm25,inicio_utc,fin_utc,inicio_lima,fin_lima,claves_aire_invalidas,pm25_invalidos,pm25_sin_medicion,filas_ifs10,velocidad_invalida,direccion_invalida,estaciones,celdas_ifs10,viento_no_nulo,filas_modelado_antes_de_purga,filas_modelado_con_viento,filas_modelado_con_origen_alineado
+572544,UTC,America/Lima,µg/m³,2015-01-01 05:00:00+00:00,2024-05-01 04:00:00+00:00,2015-01-01,2024-04-30 23:00:00,0,0,209280,449736,0,0,7,7,449736,347261,255639,166841

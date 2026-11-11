@@ -1,0 +1,118 @@
+{
+  "modelo_seleccionado_cv": "rf_transporte_d16",
+  "hiperparametros": {
+    "n_estimators": 48,
+    "max_depth": 16,
+    "min_samples_leaf": 15,
+    "max_features": 0.55,
+    "max_samples": 0.3
+  },
+  "criterio": "menor MAE macro por estación, media de tres pliegues",
+  "inicio_emisiones_prueba": "2023-01-01 00:00:00",
+  "fin_objetivos_prueba": "2024-04-30 23:00:00",
+  "n_desarrollo": 291219,
+  "n_prueba": 56035,
+  "n_purgadas_corte_final": 7,
+  "mejor_referencia_cv": "persistencia",
+  "n_predictores": 76,
+  "candidatos": {
+    "xgb_hito2": {
+      "grupo": "base",
+      "familia": "XGBoost",
+      "n_estimators": 220,
+      "max_depth": 5,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 5
+    },
+    "xgb_viento": {
+      "grupo": "viento",
+      "familia": "XGBoost",
+      "n_estimators": 220,
+      "max_depth": 5,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 5
+    },
+    "xgb_vecinos": {
+      "grupo": "vecinos",
+      "familia": "XGBoost",
+      "n_estimators": 220,
+      "max_depth": 5,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 5
+    },
+    "xgb_transporte": {
+      "grupo": "transporte",
+      "familia": "XGBoost",
+      "n_estimators": 220,
+      "max_depth": 5,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 5
+    },
+    "xgb_transporte_d3": {
+      "grupo": "transporte",
+      "familia": "XGBoost",
+      "n_estimators": 180,
+      "max_depth": 3,
+      "learning_rate": 0.07,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 8,
+      "min_child_weight": 15
+    },
+    "xgb_transporte_d6": {
+      "grupo": "transporte",
+      "familia": "XGBoost",
+      "n_estimators": 180,
+      "max_depth": 6,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 12,
+      "min_child_weight": 30
+    },
+    "histgb_transporte_15": {
+      "grupo": "transporte",
+      "familia": "HistGradientBoosting",
+      "max_iter": 140,
+      "max_leaf_nodes": 15,
+      "min_samples_leaf": 60,
+      "learning_rate": 0.07,
+      "l2_regularization": 3
+    },
+    "histgb_transporte_31": {
+      "grupo": "transporte",
+      "familia": "HistGradientBoosting",
+      "max_iter": 120,
+      "max_leaf_nodes": 31,
+      "min_samples_leaf": 40,
+      "learning_rate": 0.07,
+      "l2_regularization": 5
+    },
+    "rf_transporte_d12": {
+      "grupo": "transporte",
+      "familia": "RandomForest",
+      "n_estimators": 48,
+      "max_depth": 12,
+      "min_samples_leaf": 20,
+      "max_features": 0.55,
+      "max_samples": 0.3
+    },
+    "rf_transporte_d16": {
+      "grupo": "transporte",
+      "familia": "RandomForest",
+      "n_estimators": 48,
+      "max_depth": 16,
+      "min_samples_leaf": 15,
+      "max_features": 0.55,
+      "max_samples": 0.3
+    }
+  }
+}
