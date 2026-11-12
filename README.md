@@ -102,6 +102,37 @@ python -m codigo.eventos_viento
 
 Añade `--extender` tras descargar las lecturas adicionales para reproducir los dos periodos. Las tablas `cobertura.csv`, `direccion.csv`, `alertas.csv`, `diferencias.csv` y `umbrales.csv` están en [`resultados/eventos_viento/`](resultados/eventos_viento/). La consulta de concentración y las alertas por episodios son evaluaciones distintas.
 
+## Diagnóstico de error y matriz de confusión
+
+Se contrastaron rezagos de 2, 12, 48 y 168 horas, antecedentes a la misma hora objetivo, resúmenes recientes y el día de la semana. Se compararon XGBoost, XGBoost con pérdida absoluta, HistGradientBoosting y ExtraTrees, con la referencia previa en las mismas filas. XGBoost con historia y pérdida absoluta obtuvo el menor MAE medio por estación en los tres horizontes en validación de 2020 a 2022.
+
+| Horizonte | MAE histórico previo | MAE histórico del candidato | MAE OpenAQ previo | MAE OpenAQ del candidato |
+| --- | ---: | ---: | ---: | ---: |
+| 1 h | 2,823 | 2,770 | 4,556 | 4,613 |
+| 3 h | 4,938 | 4,706 | 8,116 | 8,473 |
+| 6 h | 5,762 | 5,353 | 9,851 | 10,363 |
+
+Los errores están en µg/m³. En las cuatro estaciones comunes, los casos altos a una hora representaron 1,6 % en el periodo histórico y 21,8 % en OpenAQ, según el P95 por estación estimado antes de 2023. En el histórico, el candidato obtuvo MAE de 15,857 µg/m³ en los casos altos a una hora. La altura de capa límite y su producto con la rapidez del viento a 10 m dieron cambios pequeños. En los casos con altura disponible, agregarlas al modelo con rezagos redujo el MAE entre 0,006 y 0,033 µg/m³. El insumo carece de altura en 2024. Cuando falta se utiliza el modelo equivalente sin estas variables.
+
+Para alertas se fijaron los percentiles de alza y se ajustaron los clasificadores con datos anteriores a 2022. En validación de 2022 se eligió el mayor umbral que conservaba los 83 aciertos de la regla física. Este punto quedó fijo para cada clasificador. El cuadro histórico comprende 1.214 pares evaluables con esos percentiles.
+
+| Método | VP | FP | FN | VN | Precisión | Sensibilidad |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Regla de viento | 25 | 191 | 67 | 931 | 11,6 % | 27,2 % |
+| Logístico sin rumbo | 22 | 87 | 70 | 1.035 | 20,2 % | 23,9 % |
+| Logístico con rumbo | 22 | 83 | 70 | 1.039 | 21,0 % | 23,9 % |
+
+VP cuenta las alzas detectadas, FP las falsas alertas, FN las alzas omitidas y VN las ausencias de alza sin aviso. En OpenAQ ambos modelos obtuvieron tres aciertos y once falsas alertas en 68 pares. `misma_sensibilidad_descriptiva.csv` compara los errores a un mismo número de alzas observadas detectadas en cada prueba. Este análisis de la curva usa las etiquetas de prueba y es independiente de los umbrales fijados con 2022.
+
+```bash
+python -m codigo.analizar_mae
+python -m codigo.eventos_viento --calibrar
+```
+
+Añade `--extender` para repetir la evaluación posterior. [Métricas de concentración](resultados/analisis_mae/) · [Matrices y umbrales de alertas](resultados/eventos_viento/)
+
+La siguiente comparación puede probar LSTM a 3 y 6 horas sobre los mismos pliegues. Montalvo et al. (2022) encontraron el menor MAE medio de PM2.5 con LSTM entre sus modelos de un estudio de Lima. Para ampliar entradas, tienen prioridad las lecturas recientes y las corridas meteorológicas disponibles al emitir el pronóstico. CAMS ofrece PM2.5 como contexto regional con una cuadrícula de 0,4°. [Estudio de Lima](https://doi.org/10.3389/frsc.2022.849762) · [Archivo de pronósticos CAMS](https://ads.atmosphere.copernicus.eu/datasets/cams-global-atmospheric-composition-forecasts?tab=overview)
+
 ## Diseño del experimento
 
 | Grupo | Entradas |

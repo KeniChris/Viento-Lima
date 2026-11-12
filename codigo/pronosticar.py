@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.ensemble import ExtraTreesRegressor, HistGradientBoostingRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
@@ -72,14 +72,17 @@ def candidates(include_fires=False):
     )
 
 
-def make_regressor(spec, jobs):
-    numeric = [column for column in GROUPS[spec.group] if column != STATION]
+def make_regressor(spec, jobs, columns=None):
+    columns = GROUPS[spec.group] if columns is None else columns
+    numeric = [column for column in columns if column != STATION]
     numeric_steps = [SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True)]
     if spec.family == "Ridge":
         numeric_steps.append(StandardScaler())
         model = Ridge(**spec.parameters)
     elif spec.family == "XGBoost":
         model = XGBRegressor(tree_method="hist", n_jobs=jobs, random_state=SEED, **spec.parameters)
+    elif spec.family == "ExtraTrees":
+        model = ExtraTreesRegressor(n_jobs=jobs, random_state=SEED, **spec.parameters)
     else:
         model = HistGradientBoostingRegressor(early_stopping=False, random_state=SEED, **spec.parameters)
     transform = ColumnTransformer([
@@ -89,10 +92,10 @@ def make_regressor(spec, jobs):
     return make_pipeline(transform, model)
 
 
-def fit_and_predict(spec, train, evaluations, jobs):
-    columns = GROUPS[spec.group]
+def fit_and_predict(spec, train, evaluations, jobs, columns=None):
+    columns = GROUPS[spec.group] if columns is None else columns
     change = train[TARGET] - train[CURRENT]
-    model = make_regressor(spec, jobs).fit(train[columns], change)
+    model = make_regressor(spec, jobs, columns).fit(train[columns], change)
     return [np.maximum(0, rows[CURRENT].to_numpy() + model.predict(rows[columns])) for rows in evaluations]
 
 
@@ -278,7 +281,7 @@ def compare_horizon(frame, horizon, jobs, include_fires):
     }
 
 
-def run(data_dir, wind_path, output, horizons, jobs, include_extension, downloads, include_fires=False):
+def load_hourly_sources(data_dir, wind_path, include_extension, downloads):
     air, _ = load_air(data_dir)
     weather = pd.read_parquet(data_dir / "clima_era5_7_estaciones.parquet", columns=KEY + METEO[:4])
     wind, _ = load_wind(wind_path)
@@ -294,6 +297,11 @@ def run(data_dir, wind_path, output, horizons, jobs, include_extension, download
     weather["relative_humidity_2m"] = weather.relative_humidity_2m.where(weather.relative_humidity_2m.between(0, 100))
     weather["precipitation"] = weather.precipitation.where(weather.precipitation.ge(0))
     weather["pressure_msl"] = weather.pressure_msl.where(weather.pressure_msl.gt(0))
+    return air, weather, wind
+
+
+def run(data_dir, wind_path, output, horizons, jobs, include_extension, downloads, include_fires=False):
+    air, weather, wind = load_hourly_sources(data_dir, wind_path, include_extension, downloads)
     fires = load_detections(data_dir) if include_fires else None
     collected = {}
     with threadpool_limits(limits=jobs):

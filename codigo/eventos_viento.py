@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score, confusion_matrix
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
@@ -26,16 +26,17 @@ ANGLE_LIMIT = np.cos(np.deg2rad(45))
 ORIGIN = "origen"
 RECEIVER = "receptora"
 TARGET = "alza_receptora"
+VALIDATION_START = pd.Timestamp("2022-01-01")
 BASE = ["distancia_km", "velocidad_ms", "pm_origen", "alza_origen_3h", "pm_receptora", "cambio_receptora_3h",
         "hora_seno", "hora_coseno", "mes_seno", "mes_coseno", "fin_de_semana"]
 DIRECTIONAL = ["alineacion_cos", "avance_relativo_6h", "compatible"]
 
 
-def station_signals(air):
+def station_signals(air, threshold_end=TEST_START):
     calendar = pd.date_range(START - 3 * HOUR, air[TIME].max(), freq="h")
     pm = station_matrix(air, CURRENT, calendar)
     change = pm.diff(3)
-    development = (calendar >= START) & (calendar < TEST_START)
+    development = (calendar >= START) & (calendar < threshold_end)
     threshold_level = pm.loc[development].quantile(.75)
     threshold_change = change.loc[development].quantile(.95)
     if threshold_level.isna().any() or threshold_change.isna().any():
@@ -67,8 +68,8 @@ def wind_route(speed, direction, distance, east, north):
     return reach, aligned, alignment, relative_travel, eta
 
 
-def make_cases(air, wind):
-    pm, change, thresholds, onset, normal, observed, future = station_signals(air)
+def make_cases(air, wind, threshold_end=TEST_START):
+    pm, change, thresholds, onset, normal, observed, future = station_signals(air, threshold_end)
     speed = station_matrix(wind, SPEED, pm.index)
     direction = station_matrix(wind, DIRECTION, pm.index)
     frames = []
@@ -118,11 +119,14 @@ def score_model(train, test, numerical):
 
 
 def alert_metrics(labels, alerts):
-    hits = int((labels & alerts).sum())
-    n_alerts, positives = int(alerts.sum()), int(labels.sum())
-    return {"alertas": n_alerts, "aciertos": hits, "falsas_alertas": n_alerts - hits,
-            "precision": hits / n_alerts if n_alerts else np.nan,
-            "sensibilidad": hits / positives if positives else np.nan}
+    tn, fp, fn, tp = confusion_matrix(labels, alerts, labels=[False, True]).ravel().tolist()
+    n_alerts, positives = tp + fp, tp + fn
+    f1_total = 2 * tp + fp + fn
+    return {"alertas": n_alerts, "aciertos": tp, "falsas_alertas": fp,
+            "falsos_negativos": fn, "verdaderos_negativos": tn,
+            "precision": tp / n_alerts if n_alerts else np.nan,
+            "sensibilidad": tp / positives if positives else np.nan,
+            "f1": 2 * tp / f1_total if f1_total else np.nan}
 
 
 def weekly_delta(rows, a, b):
@@ -178,7 +182,53 @@ def evaluate(train, candidates):
     return {"cobertura": [coverage], "direccion": rates, "alertas": rules, "diferencias": deltas}
 
 
-def run(data_dir, wind_path, output, extension=False, downloads=None):
+def cutoff_for_hits(labels, probability, hits):
+    if not hits:
+        return np.inf
+    positives = np.sort(probability[labels])
+    return float(positives[-hits])
+
+
+def calibrate(cases, extension):
+    observed = cases.loc[cases.ventana_observada]
+    end = observed[TIME] + HORIZON * HOUR
+    train = observed.loc[end.lt(VALIDATION_START)]
+    cohorts = {"validacion_2022": observed.loc[observed[TIME].ge(VALIDATION_START) & end.lt(TEST_START)],
+               "historica": observed.loc[observed[TIME].ge(TEST_START) & end.lt(EXTENSION_START)]}
+    if extension:
+        cohorts["openaq_2024"] = observed.loc[observed[TIME].ge(EXTENSION_START)]
+    validation = cohorts["validacion_2022"]
+    if train[TARGET].nunique() != 2 or not validation[TARGET].any():
+        raise ValueError("Se requieren alzas en entrenamiento anterior a 2022 y validación de 2022")
+    rows = pd.concat(cohorts.values())
+    val_pos = validation[TARGET].to_numpy()
+    val_hits = int((val_pos & validation.compatible.to_numpy()).sum())
+    fixed, diagnostic = [], []
+    for period, data in cohorts.items():
+        labels, rule = data[TARGET].to_numpy(), data.compatible.to_numpy()
+        record = {"periodo": period, "metodo": "regla_viento", "n": len(data), "umbral_validacion": np.nan,
+                  "precision_promedio": np.nan, **alert_metrics(labels, rule)}
+        fixed.append(record)
+        if period != "validacion_2022":
+            diagnostic.append(record)
+    for name, columns in (("modelo_sin_rumbo", BASE), ("modelo_con_rumbo", BASE + DIRECTIONAL)):
+        probability = pd.Series(score_model(train, rows, columns), index=rows.index)
+        threshold = cutoff_for_hits(val_pos, probability.loc[validation.index].to_numpy(), val_hits)
+        for period, data in cohorts.items():
+            labels, pred = data[TARGET].to_numpy(), probability.loc[data.index].to_numpy()
+            summary = {"periodo": period, "metodo": name, "n": len(data),
+                       "precision_promedio": average_precision_score(labels, pred) if labels.any() else np.nan}
+            fixed.append({**summary, "umbral_validacion": threshold, **alert_metrics(labels, pred >= threshold)})
+            if period == "validacion_2022":
+                continue
+            # Esta cota describe la curva en prueba. El umbral operativo se fija solo con validación.
+            same_hits = int((labels & data.compatible.to_numpy()).sum())
+            matched = cutoff_for_hits(labels, pred, same_hits)
+            diagnostic.append({**summary, **alert_metrics(labels, pred >= matched)})
+    return {"alertas_umbral_validado": fixed, "misma_sensibilidad_descriptiva": diagnostic}
+
+
+def run(data_dir, wind_path, output, extension=False, downloads=None, calibrate_thresholds=False):
     air, _ = load_air(data_dir)
     wind, _ = load_wind(wind_path)
     if extension:
@@ -204,8 +254,13 @@ def run(data_dir, wind_path, output, extension=False, downloads=None):
             raise ValueError(f"El periodo {name} carece de ventanas completas para evaluar")
         for table, entries in evaluate(train, cohort).items():
             results.setdefault(table, []).extend({"periodo": name, **entry} for entry in entries)
+    if calibrate_thresholds:
+        calibration_cases, calibration_thresholds = make_cases(air, wind, VALIDATION_START)
+        results.update(calibrate(calibration_cases, extension))
     output.mkdir(parents=True, exist_ok=True)
     thresholds.to_csv(output / "umbrales.csv", index_label="ESTACION", float_format="%.9g")
+    if calibrate_thresholds:
+        calibration_thresholds.to_csv(output / "umbrales_desarrollo_2021.csv", index_label="ESTACION", float_format="%.9g")
     for name, entries in results.items():
         pd.DataFrame(entries).to_csv(output / f"{name}.csv", index=False, float_format="%.9g")
     return results
@@ -218,9 +273,11 @@ def main():
     parser.add_argument("--salida", type=Path, default=Path("resultados/eventos_viento"))
     parser.add_argument("--extender", action="store_true", help="Evalúa también la extensión de OpenAQ de mayo–junio de 2024")
     parser.add_argument("--descargas-clima", type=Path, help="Carpeta con ifs_2024.csv para la extensión")
+    parser.add_argument("--calibrar", action="store_true", help="Fija umbrales con datos de 2022 y evalúa sus errores posteriores")
     args = parser.parse_args()
     try:
-        results = run(args.datos, args.viento or args.datos / WIND_FILE, args.salida, args.extender, args.descargas_clima)
+        results = run(args.datos, args.viento or args.datos / WIND_FILE, args.salida,
+                      args.extender, args.descargas_clima, args.calibrar)
     except FileNotFoundError as error:
         parser.error(f"Falta un insumo: {error.filename or error}. Revisa --datos y --viento.")
     print(pd.DataFrame(results["alertas"]).to_string(index=False))
