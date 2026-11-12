@@ -1,0 +1,4 @@
+horizonte_h,candidato_validacion,modelo_final,MAE_macro_cv_final,MAE_macro_cv_referencia,pares_jul_sep_2024,MAE_jul_sep,MAE_referencia_jul_sep,MAE_macro_jul_sep,MAE_macro_referencia_jul_sep,MAE_altos_jul_sep,MAE_altos_referencia_jul_sep
+1,xgb_historia_mae,xgb_historia_mae,3.89679163,3.96346198,7962,3.97795475,3.99817714,3.93135943,3.95514467,7.85088924,7.80417518
+3,lstm_24h,lstm_24h,6.45475731,6.8390558,7913,7.41333987,7.78115412,7.3646164,7.73040081,16.2072758,15.6250238
+6,lstm_24h,lstm_24h,7.46325432,8.1707443,7861,9.26763511,9.49908303,9.23195781,9.44996095,21.4441554,20.0146835

@@ -1,0 +1,9 @@
+horizonte_h,modelo,MAE_macro_cv,DE_MAE_macro_cv
+1,xgb_historia_mae,3.89679163,0.193873431
+1,referencia_previa,3.96346198,0.164508382
+3,lstm_24h,6.45475731,0.724389306
+3,xgb_historia_mae,6.5599626,0.876410413
+3,referencia_previa,6.8390558,0.625323961
+6,lstm_24h,7.46325432,1.08830852
+6,xgb_historia_mae,7.64903003,1.33781564
+6,referencia_previa,8.1707443,0.899042619
