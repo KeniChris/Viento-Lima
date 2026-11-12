@@ -1,0 +1,4 @@
+fuente,evidencia,decision,url
+CAMS Global oficial,"Archivo horario global con cuadrícula de 0,4° desde 2015",Referencia de contexto regional. El CSV accesible revisado fue la serie diaria de Lima,https://ads.atmosphere.copernicus.eu/datasets/cams-global-atmospheric-composition-forecasts?tab=overview
+Serie de Lima derivada de CAMS en Zenodo,1298 días entre 2022-08-01 y 2026-02-18 y 2 faltantes de PM2.5 y 0 fechas duplicadas,"Excluida por frecuencia diaria, una coordenada y cobertura parcial de desarrollo",https://zenodo.org/records/18673925
+"Open-Meteo Single Runs, IFS","24 horas de humedad, velocidad y dirección en una corrida de mayo de 2024. La consulta de mayo de 2022 devolvió 400 por corrida no disponible",Excluida del modelo final. El archivo individual IFS comienza el 14 de marzo de 2024,https://open-meteo.com/en/docs/single-runs-api

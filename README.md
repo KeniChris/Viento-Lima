@@ -131,7 +131,32 @@ python -m codigo.eventos_viento --calibrar
 
 Añade `--extender` para repetir la evaluación posterior. [Métricas de concentración](resultados/analisis_mae/) · [Matrices y umbrales de alertas](resultados/eventos_viento/)
 
-La siguiente comparación puede probar LSTM a 3 y 6 horas sobre los mismos pliegues. Montalvo et al. (2022) encontraron el menor MAE medio de PM2.5 con LSTM entre sus modelos de un estudio de Lima. Para ampliar entradas, tienen prioridad las lecturas recientes y las corridas meteorológicas disponibles al emitir el pronóstico. CAMS ofrece PM2.5 como contexto regional con una cuadrícula de 0,4°. [Estudio de Lima](https://doi.org/10.3389/frsc.2022.849762) · [Archivo de pronósticos CAMS](https://ads.atmosphere.copernicus.eu/datasets/cams-global-atmospheric-composition-forecasts?tab=overview)
+## Selección final y prueba de julio a septiembre de 2024
+
+El EDA de la ampliación de SENAMHI en OpenAQ registró 8.088 filas de PM2.5. Después de verificar estaciones, unidades, horas UTC y de Lima, valores finitos no negativos y claves únicas, se conservaron 8.013 lecturas y se excluyeron 75 fuera del periodo. La cobertura por estación fue de 79,6 % a 98,5 %. Se conservaron picos válidos de hasta 128,40 µg/m³. Las horas faltantes se mantuvieron como ausencias. La ampliación se usó como prueba temporal y los ajustes se realizaron con datos anteriores a 2023.
+
+Se entrenaron dos LSTM directas, a 3 y 6 horas, con 24 horas consecutivas de entrada, una máscara de disponibilidad y los mismos predictores tabulares del XGBoost con rezagos de cada horizonte. Cada red tiene 16 unidades LSTM, una capa densa de 24 unidades y una salida para el cambio de concentración. Se ajustó con Adam (0,001), pérdida absoluta, ocho épocas, lotes de 512 y semilla 42. La imputación y el escalado se ajustaron con el entrenamiento de cada pliegue. El estudio local de Montalvo et al. (2022) motivó la prueba. [Estudio de Lima](https://doi.org/10.3389/frsc.2022.849762)
+
+Se eligió el menor MAE macro en validación de 2020 a 2022 y se comprobó la mejora respecto de la referencia en el MAE macro de julio a septiembre. Los errores globales de esa prueba, en µg/m³, fueron los siguientes.
+
+| Horizonte | Modelo final | Pares | MAE de referencia | MAE final | MAE final en lecturas altas |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1 h | XGBoost con rezagos y pérdida absoluta | 7.962 | 3,998 | 3,978 | 7,851 |
+| 3 h | LSTM directa | 7.913 | 7,781 | 7,413 | 16,207 |
+| 6 h | LSTM directa | 7.861 | 9,499 | 9,268 | 21,444 |
+
+Las lecturas altas se definieron con el P95 por estación del desarrollo. En ese subconjunto el MAE de las referencias fue 7,804, 15,625 y 20,015 µg/m³ a 1, 3 y 6 horas. El clasificador de episodios del apartado anterior se conserva como apoyo de vigilancia.
+
+Se mantuvo la meteorología de archivo en la evaluación retrospectiva. Las corridas individuales de IFS consultadas comienzan en marzo de 2024 y dejan sin cobertura los pliegues de desarrollo. El extracto de CAMS revisado contiene una observación diaria para una coordenada de Lima desde agosto de 2022. Ambas fuentes quedaron fuera de los predictores finales. [Archivo de pronósticos CAMS](https://ads.atmosphere.copernicus.eu/datasets/cams-global-atmospheric-composition-forecasts?tab=overview) · [Extracto de Lima](https://zenodo.org/records/18673925) · [Corridas individuales de IFS](https://open-meteo.com/en/docs/single-runs-api)
+
+```bash
+python -m pip install "tensorflow-cpu==2.21.0" "keras==3.15.1"
+python -m codigo.actualizar_aire --extender
+python -m codigo.preparar_lecturas_recientes
+python -m codigo.evaluar_lstm --aire-reciente datos/pm25_senamhi_openaq_jul_sep_2024.csv.gz
+```
+
+El comando de evaluación usa los resultados previos de `resultados/analisis_mae` para contrastar la validación de los modelos tabulares. El cuaderno muestra el EDA, la selección por horizonte y los errores de prueba. [Auditoría y resultados de cierre](resultados/cierre_modelos/)
 
 ## Diseño del experimento
 
