@@ -1,0 +1,7 @@
+periodo,grupo,pares,alzas,tasa_alza
+historica,compatible,257,36,0.140077821
+historica,otro_alcanzable_por_velocidad,1019,64,0.0628066732
+historica,no_alcanzable_por_velocidad,16,7,0.4375
+openaq_2024,compatible,32,4,0.125
+openaq_2024,otro_alcanzable_por_velocidad,44,8,0.181818182
+openaq_2024,no_alcanzable_por_velocidad,0,0,

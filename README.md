@@ -83,6 +83,25 @@ Se compara XGBoost con los mismos hiperparámetros y entradas incrementales. Agr
 
 El equivalente en un entorno activo es `python -m codigo.pronosticar --focos --hilos 4`. Para repetir la comprobación posterior de cuatro estaciones, descarga las lecturas con `python -m codigo.actualizar_aire --extender` y añade `--extender` al comando de pronóstico. Usa otra carpeta con `--salida` si quieres conservar las tablas ya publicadas. El cuaderno muestra las métricas por horizonte y estación y los residuos con `RECALCULAR_HORIZONTES = False`. [Diccionario de datos y resultados](resultados/multihorizonte/diccionario.md)
 
+## Evaluación del viento tras un alza anómala
+
+El análisis se activa cuando el aumento de PM2.5 en tres horas de una estación alcanza su percentil 95 y la concentración alcanza su percentil 75. Se requieren seis horas previas observadas sin alzas que cumplan ambos umbrales. Se considera una receptora a 20 km o menos que aún está por debajo de su percentil 75. El objetivo es observar una subida anómala con esos mismos criterios en la receptora durante las seis horas siguientes. Los percentiles se calculan por estación con lecturas de 2017 a 2022. Solo se califican pares con toda la ventana objetivo observada.
+
+El viento de la emisión se proyecta en el rumbo origen–receptora. Se considera compatible si el ángulo es de hasta 45° y la velocidad proyectada permite cubrir la distancia en seis horas. Se compara la tasa de alzas con otros pares alcanzables por velocidad. Para medir el aporte del rumbo a la priorización, ambos clasificadores logísticos usan la misma historia, hora, distancia, par de estaciones y rapidez del viento. El segundo añade alineación y alcance proyectado. El cupo retrospectivo de avisos es el número de pares que selecciona la regla física en cada periodo y se fija sin consultar los resultados de PM2.5 posteriores.
+
+| Periodo | Alzas con viento compatible | Alzas en otros pares alcanzables | Aciertos sin rumbo | Aciertos con rumbo |
+| --- | ---: | ---: | ---: | ---: |
+| Enero de 2023 a abril de 2024 | 36/257 (14,0 %) | 64/1.019 (6,3 %) | 46/257 | 48/257 |
+| Mayo y junio de 2024 | 4/32 (12,5 %) | 8/44 (18,2 %) | 6/32 | 6/32 |
+
+En la prueba histórica hubo 523 disparos de origen y 1.292 pares evaluables. La diferencia de tasas fue de +7,7 puntos porcentuales entre los grupos alcanzables, con intervalo descriptivo semanal de +3,6 a +12,1. Incorporar el rumbo al clasificador produjo dos aciertos adicionales con el mismo cupo y un intervalo de −0,5 a +2,2 puntos porcentuales de precisión. La regla física sola tuvo 221 falsas alertas de 257. La prueba posterior solo contó con cuatro estaciones y 76 pares evaluables. El alcance estimado supone viento constante desde la hora de emisión. Estas métricas describen asociación y capacidad predictiva retrospectiva.
+
+```bash
+python -m codigo.eventos_viento
+```
+
+Añade `--extender` tras descargar las lecturas adicionales para reproducir los dos periodos. Las tablas `cobertura.csv`, `direccion.csv`, `alertas.csv`, `diferencias.csv` y `umbrales.csv` están en [`resultados/eventos_viento/`](resultados/eventos_viento/). La consulta de concentración y las alertas por episodios son evaluaciones distintas.
+
 ## Diseño del experimento
 
 | Grupo | Entradas |
