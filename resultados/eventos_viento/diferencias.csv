@@ -1,0 +1,5 @@
+periodo,comparacion,diferencia,bloques_semanales,IC95_inf,IC95_sup
+historica,tasa_compatible_menos_otro_alcanzable,0.0772711478,70,0.0360907128,0.120881308
+historica,precision_modelo_con_rumbo_menos_sin_rumbo,0.00778210117,70,-0.0045923418,0.0224535403
+openaq_2024,tasa_compatible_menos_otro_alcanzable,-0.0568181818,9,-0.163942486,0.0347593583
+openaq_2024,precision_modelo_con_rumbo_menos_sin_rumbo,0,9,-0.0391706924,0.0454545455
