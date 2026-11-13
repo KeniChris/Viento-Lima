@@ -53,8 +53,10 @@ def normalize_history(sequence, center, scale):
     return np.stack([standardized, available], axis=-1).astype(np.float32)
 
 
-def dataset(tf, inputs, target=None):
+def dataset(tf, inputs, target=None, sample_weight=None):
     values = (inputs,) if target is None else (inputs, target)
+    if sample_weight is not None:
+        values = (inputs, target, sample_weight)
     batches = tf.data.Dataset.from_tensor_slices(values)
     if target is not None:
         batches = batches.shuffle(min(len(target), 16384), seed=SEED)
@@ -63,7 +65,17 @@ def dataset(tf, inputs, target=None):
     return batches.batch(BATCH_SIZE).with_options(options).prefetch(1)
 
 
-def fit_and_forecast(tf, train, evaluations, calendar, grid, horizon):
+def lstm_network(tf, predictors):
+    history = tf.keras.Input(shape=(LOOKBACK, 2), name="historia_pm25")
+    tabular = tf.keras.Input(shape=(predictors,), name="predictores")
+    state = tf.keras.layers.LSTM(UNITS)(history)
+    combined = tf.keras.layers.Concatenate()([state, tabular])
+    dense = tf.keras.layers.Dense(24, activation="relu")(combined)
+    change = tf.keras.layers.Dense(1, kernel_initializer="zeros")(dense)
+    return tf.keras.Model([history, tabular], change)
+
+
+def fit_lstm(tf, train, calendar, grid, horizon, sample_weight=None):
     tf.keras.backend.clear_session()
     tf.keras.utils.set_random_seed(SEED)
     columns = GROUPS[GROUP_BY_HOUR[horizon]] + HISTORY
@@ -79,28 +91,35 @@ def fit_and_forecast(tf, train, evaluations, calendar, grid, horizon):
     center = float(np.nanmedian(sequence))
     scale = max(1.0, float(np.nanstd(sequence)))
 
-    def inputs(rows):
-        sequence = normalize_history(histories(rows, calendar, grid), center, scale)
-        tabular = preprocessing.transform(rows[columns]).astype(np.float32)
-        return sequence, tabular
-
-    train_inputs = inputs(train)
-    history = tf.keras.Input(shape=(LOOKBACK, 2), name="historia_pm25")
-    tabular = tf.keras.Input(shape=(train_inputs[1].shape[1],), name="predictores")
-    state = tf.keras.layers.LSTM(UNITS)(history)
-    dense = tf.keras.layers.Dense(24, activation="relu")(tf.keras.layers.Concatenate()([state, tabular]))
-    change = tf.keras.layers.Dense(1, kernel_initializer="zeros")(dense)
-    model = tf.keras.Model([history, tabular], change)
+    train_inputs = (
+        normalize_history(sequence, center, scale),
+        preprocessing.transform(train[columns]).astype(np.float32),
+    )
+    model = lstm_network(tf, train_inputs[1].shape[1])
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss="mae")
 
     actual_change = (train[TARGET] - train[CURRENT]).to_numpy(dtype=np.float32)
     target_scale = max(1.0, float(actual_change.std()))
-    model.fit(dataset(tf, train_inputs, actual_change[:, None] / target_scale), epochs=EPOCHS, shuffle=False, verbose=0)
-    predictions = []
-    for rows in evaluations:
-        estimated = model.predict(dataset(tf, inputs(rows)), verbose=0).ravel()
-        predictions.append(np.maximum(0, rows[CURRENT].to_numpy() + target_scale * estimated))
-    return predictions
+    model.fit(dataset(tf, train_inputs, actual_change[:, None] / target_scale, sample_weight),
+              epochs=EPOCHS, shuffle=False, verbose=0)
+    return model, {"columnas": columns, "transformador": preprocessing, "centro": center,
+                   "escala": scale, "escala_objetivo": target_scale}
+
+
+def predict_lstm(tf, model, state, rows, calendar, grid):
+    return predict_lstm_sequence(tf, model, state, rows, histories(rows, calendar, grid))
+
+
+def predict_lstm_sequence(tf, model, state, rows, sequence):
+    history = normalize_history(sequence, state["centro"], state["escala"])
+    tabular = state["transformador"].transform(rows[state["columnas"]]).astype(np.float32)
+    estimated = model.predict(dataset(tf, (history, tabular)), verbose=0).ravel()
+    return np.maximum(0, rows[CURRENT].to_numpy() + state["escala_objetivo"] * estimated)
+
+
+def fit_and_forecast(tf, train, evaluations, calendar, grid, horizon):
+    model, state = fit_lstm(tf, train, calendar, grid, horizon)
+    return [predict_lstm(tf, model, state, rows, calendar, grid) for rows in evaluations]
 
 
 def compare(tf, frame, calendar, grid, horizon):
@@ -196,8 +215,8 @@ def main():
     parser.add_argument("--descargas-clima", type=Path)
     parser.add_argument("--extender", action="store_true")
     parser.add_argument("--aire-reciente", type=Path, help="CSV horario limpio de julio a septiembre")
-    parser.add_argument("--salida", type=Path, default=Path("resultados/cierre_modelos"))
-    parser.add_argument("--diagnostico", type=Path, default=Path("resultados/analisis_mae"))
+    parser.add_argument("--salida", type=Path, default=Path("resultados/historico/cierre_modelos"))
+    parser.add_argument("--diagnostico", type=Path, default=Path("resultados/historico/analisis_mae"))
     parser.add_argument("--horizontes", type=int, choices=HORIZONS, nargs="+")
     parser.add_argument("--hilos", type=int, default=3)
     args = parser.parse_args()

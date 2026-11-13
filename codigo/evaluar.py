@@ -261,8 +261,8 @@ def evaluate_models(frame, output, jobs=4):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--matriz", type=Path, default=Path("resultados/matriz_hito3.parquet"))
-    parser.add_argument("--salida", type=Path, default=Path("resultados"))
+    parser.add_argument("--matriz", type=Path, default=Path("resultados/historico/matriz_hito3.parquet"))
+    parser.add_argument("--salida", type=Path, default=Path("resultados/historico"))
     parser.add_argument("--hilos", type=int, default=4)
     args = parser.parse_args()
     if not args.matriz.is_file():

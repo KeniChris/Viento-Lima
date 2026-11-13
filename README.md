@@ -1,206 +1,70 @@
-# PM2.5 en Lima Metropolitana
+# Pronóstico horario de PM2.5 en Lima Metropolitana
 
-El proyecto pronostica la concentración horaria de PM2.5 en siete estaciones del SENAMHI. Las horas del CSV original están en **UTC** y el PM2.5 se expresa en **µg/m³**. El cruce con OpenAQ verificó 112 de 112 pares de cuatro estaciones a la precisión publicada. Las fechas se convierten a `America/Lima` antes de cruzar la meteorología.
+El proyecto pronostica la concentración de PM2.5 en siete estaciones del SENAMHI. Los modelos estiman el cambio respecto a la medición de emisión. XGBoost pronostica a una hora y dos redes LSTM pronostican a tres y seis horas. La concentración se expresa en µg/m³. La alerta de propagación entre estaciones se evalúa con un clasificador de episodios.
 
-## Reproducir los experimentos
+## Resultados
 
-Clona la rama `develop` y ejecuta los comandos desde la carpeta que contiene `codigo/` y `Hito3_PM25_Lima.ipynb`. El experimento publicado se ejecutó con Python 3.12. El notebook abre las tablas verificadas con `RECALCULAR = False`. En Colab puede clonar la rama al arrancar. Activa el recálculo para reconstruir los resultados desde los insumos.
+La selección empleó los pliegues cronológicos de 2020, 2021 y 2022. Julio–septiembre de 2024 se usó como comprobación de la selección. La prueba independiente abarcó octubre–diciembre de 2024 en cuatro estaciones.
 
-Descarga estos archivos de la carpeta de insumos del equipo enlazada en el informe. Crea `datos/` en la raíz de `Viento-Lima` y copia allí los archivos con estos nombres exactos. Puedes colocar el ZIP directamente en `datos/`.
-
-- `aire_lima_completo.csv`
-- `clima_era5_7_estaciones.parquet`
-- `poblacion_censo2017_7_distritos.csv`
-- `csv_complementarios_pm25_lima.zip`
-
-### Windows con PowerShell
-
-```powershell
-python -m venv .venv
-$pythonHito3 = ".\.venv\Scripts\python.exe"
-& $pythonHito3 -m pip install -r requirements.txt
-& $pythonHito3 -m codigo.actualizar_aire
-& $pythonHito3 -m codigo.viento
-& $pythonHito3 -m codigo.preparar
-& $pythonHito3 -m codigo.evaluar --hilos 4
-```
-
-El entorno virtual aísla las dependencias del proyecto de las del Python global. Si los insumos están en otra carpeta, añade `--datos "ruta de los insumos"` a `codigo.actualizar_aire` y `codigo.preparar`. El archivo de viento se busca en `datos/` por defecto. Puedes indicar otra ubicación con `--viento`.
-
-### Linux y macOS
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m codigo.actualizar_aire
-python -m codigo.viento
-python -m codigo.preparar
-python -m codigo.evaluar --hilos 4
-```
-
-`codigo.evaluar` necesita `resultados/matriz_hito3.parquet`. Ejecuta primero `codigo.preparar` y comprueba que terminó antes de entrenar.
-
-`codigo.viento` descarga y limpia 449.736 registros IFS a 10 m desde enero de 2017 hasta abril de 2024. Puedes pasar CSV ya descargados con `--descargas`. `codigo.preparar` escribe `resultados/aire_senamhi_normalizado.parquet` con las horas UTC y Lima, las mediciones originales y sus faltantes. La matriz del modelo se genera a partir de esas horas corregidas.
-
-## Comparación a una hora con horas corregidas
-
-| Modelo | MAE macro en validación | MAE global en prueba | RMSE en prueba |
-| --- | ---: | ---: | ---: |
-| XGBoost base | 4,138 | 2,882 | 4,980 |
-| Random Forest con transporte | 4,048 | 2,896 | 4,833 |
-| HistGradientBoosting con transporte | 4,096 | 2,930 | 5,023 |
-| Persistencia | 4,376 | 3,196 | 5,378 |
-
-La prueba histórica contiene 56.035 pronósticos. XGBoost base tuvo el menor MAE y Random Forest el menor RMSE. La ablación de XGBoost dio un cambio de MAE de +0,0156 µg/m³ al añadir transporte al grupo con PM2.5 vecino y viento local. El intervalo descriptivo del 95 % por bloques semanales fue de +0,0064 a +0,0267 µg/m³.
-
-## Prueba de mayo y junio de 2024
-
-OpenAQ aportó 4.435 lecturas nuevas de cuatro estaciones del SENAMHI. Con los rezagos y el objetivo a una hora quedaron 3.587 casos comparables posteriores al corte original. Se usaron modelos ajustados con datos anteriores a 2023. El MAE fue 4,691 µg/m³ para Random Forest, 4,699 para XGBoost base y 5,093 para persistencia. El cambio de MAE por añadir transporte a XGBoost fue −0,0013 µg/m³, con un intervalo descriptivo del 95 % de −0,0181 a +0,0159.
-
-```bash
-python -m codigo.actualizar_aire --extender
-python -m codigo.validar_extension --hilos 4
-```
-
-`acceso_openaq_2024.csv` registra los archivos diarios obtenidos y los que devolvieron 404 o 503. `cobertura_openaq_2024.csv` y `soporte_extension_2024.csv` muestran el alcance por estación. La extensión aporta una prueba posterior parcial con el mismo horizonte.
-
-## Pronóstico directo a 1, 3 y 6 horas
-
-El experimento predice el cambio de PM2.5 desde la última medición. Compara persistencia, Ridge, XGBoost, HistGradientBoosting y un promedio de los dos modelos de boosting. Cada horizonte se selecciona por MAE medio por estación en tres validaciones temporales. Las métricas de error y cruces del percentil 95 se calculan sobre las mismas filas dentro de cada horizonte. Esta cohorte empieza en 2017 y usa requisitos de inclusión distintos a los de la comparación a una hora anterior.
-
-| Horizonte | Seleccionado en validación | MAE en prueba histórica | MAE de persistencia | Cruces altos anticipados |
-| --- | --- | ---: | ---: | ---: |
-| 1 h | Promedio XGBoost + HistGradientBoosting | 2,823 | 3,193 | 10 / 300 |
-| 3 h | XGBoost con viento local | 4,938 | 6,362 | 0 / 522 |
-| 6 h | XGBoost local | 5,762 | 8,529 | 0 / 623 |
-
-Se compara XGBoost con los mismos hiperparámetros y entradas incrementales. Agregar transporte de PM2.5 vecino cambia el MAE histórico en −0,0044, +0,0068 y +0,0084 µg/m³, respectivamente. Alinear los focos térmicos VIIRS con el viento cambia el MAE en −0,0046, +0,0113 y +0,0127 frente al conteo y FRP por distancia. La detección de picos sigue siendo limitada. El viento de archivo se usa como aproximación del estado meteorológico en la emisión. Un sistema en vivo requiere verificar cuándo se publica cada entrada.
-
-```powershell
-& $pythonHito3 -m codigo.pronosticar --focos --hilos 4
-```
-
-El equivalente en un entorno activo es `python -m codigo.pronosticar --focos --hilos 4`. Para repetir la comprobación posterior de cuatro estaciones, descarga las lecturas con `python -m codigo.actualizar_aire --extender` y añade `--extender` al comando de pronóstico. Usa otra carpeta con `--salida` si quieres conservar las tablas ya publicadas. El cuaderno muestra las métricas por horizonte y estación y los residuos con `RECALCULAR_HORIZONTES = False`. [Diccionario de datos y resultados](resultados/multihorizonte/diccionario.md)
-
-## Evaluación del viento tras un alza anómala
-
-El análisis se activa cuando el aumento de PM2.5 en tres horas de una estación alcanza su percentil 95 y la concentración alcanza su percentil 75. Se requieren seis horas previas observadas sin alzas que cumplan ambos umbrales. Se considera una receptora a 20 km o menos que aún está por debajo de su percentil 75. El objetivo es observar una subida anómala con esos mismos criterios en la receptora durante las seis horas siguientes. Los percentiles se calculan por estación con lecturas de 2017 a 2022. Solo se califican pares con toda la ventana objetivo observada.
-
-El viento de la emisión se proyecta en el rumbo origen–receptora. Se considera compatible si el ángulo es de hasta 45° y la velocidad proyectada permite cubrir la distancia en seis horas. Se compara la tasa de alzas con otros pares alcanzables por velocidad. Para medir el aporte del rumbo a la priorización, ambos clasificadores logísticos usan la misma historia, hora, distancia, par de estaciones y rapidez del viento. El segundo añade alineación y alcance proyectado. El cupo retrospectivo de avisos es el número de pares que selecciona la regla física en cada periodo y se fija sin consultar los resultados de PM2.5 posteriores.
-
-| Periodo | Alzas con viento compatible | Alzas en otros pares alcanzables | Aciertos sin rumbo | Aciertos con rumbo |
-| --- | ---: | ---: | ---: | ---: |
-| Enero de 2023 a abril de 2024 | 36/257 (14,0 %) | 64/1.019 (6,3 %) | 46/257 | 48/257 |
-| Mayo y junio de 2024 | 4/32 (12,5 %) | 8/44 (18,2 %) | 6/32 | 6/32 |
-
-En la prueba histórica hubo 523 disparos de origen y 1.292 pares evaluables. La diferencia de tasas fue de +7,7 puntos porcentuales entre los grupos alcanzables, con intervalo descriptivo semanal de +3,6 a +12,1. Incorporar el rumbo al clasificador produjo dos aciertos adicionales con el mismo cupo y un intervalo de −0,5 a +2,2 puntos porcentuales de precisión. La regla física sola tuvo 221 falsas alertas de 257. La prueba posterior solo contó con cuatro estaciones y 76 pares evaluables. El alcance estimado supone viento constante desde la hora de emisión. Estas métricas describen asociación y capacidad predictiva retrospectiva.
-
-```bash
-python -m codigo.eventos_viento
-```
-
-Añade `--extender` tras descargar las lecturas adicionales para reproducir los dos periodos. Las tablas `cobertura.csv`, `direccion.csv`, `alertas.csv`, `diferencias.csv` y `umbrales.csv` están en [`resultados/eventos_viento/`](resultados/eventos_viento/). La consulta de concentración y las alertas por episodios son evaluaciones distintas.
-
-## Diagnóstico de error y matriz de confusión
-
-Se contrastaron rezagos de 2, 12, 48 y 168 horas, antecedentes a la misma hora objetivo, resúmenes recientes y el día de la semana. Se compararon XGBoost, XGBoost con pérdida absoluta, HistGradientBoosting y ExtraTrees, con la referencia previa en las mismas filas. XGBoost con historia y pérdida absoluta obtuvo el menor MAE medio por estación en los tres horizontes en validación de 2020 a 2022.
-
-| Horizonte | MAE histórico previo | MAE histórico del candidato | MAE OpenAQ previo | MAE OpenAQ del candidato |
-| --- | ---: | ---: | ---: | ---: |
-| 1 h | 2,823 | 2,770 | 4,556 | 4,613 |
-| 3 h | 4,938 | 4,706 | 8,116 | 8,473 |
-| 6 h | 5,762 | 5,353 | 9,851 | 10,363 |
-
-Los errores están en µg/m³. En las cuatro estaciones comunes, los casos altos a una hora representaron 1,6 % en el periodo histórico y 21,8 % en OpenAQ, según el P95 por estación estimado antes de 2023. En el histórico, el candidato obtuvo MAE de 15,857 µg/m³ en los casos altos a una hora. La altura de capa límite y su producto con la rapidez del viento a 10 m dieron cambios pequeños. En los casos con altura disponible, agregarlas al modelo con rezagos redujo el MAE entre 0,006 y 0,033 µg/m³. El insumo carece de altura en 2024. Cuando falta se utiliza el modelo equivalente sin estas variables.
-
-Para alertas se fijaron los percentiles de alza y se ajustaron los clasificadores con datos anteriores a 2022. En validación de 2022 se eligió el mayor umbral que conservaba los 83 aciertos de la regla física. Este punto quedó fijo para cada clasificador. El cuadro histórico comprende 1.214 pares evaluables con esos percentiles.
-
-| Método | VP | FP | FN | VN | Precisión | Sensibilidad |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Regla de viento | 25 | 191 | 67 | 931 | 11,6 % | 27,2 % |
-| Logístico sin rumbo | 22 | 87 | 70 | 1.035 | 20,2 % | 23,9 % |
-| Logístico con rumbo | 22 | 83 | 70 | 1.039 | 21,0 % | 23,9 % |
-
-VP cuenta las alzas detectadas, FP las falsas alertas, FN las alzas omitidas y VN las ausencias de alza sin aviso. En OpenAQ ambos modelos obtuvieron tres aciertos y once falsas alertas en 68 pares. `misma_sensibilidad_descriptiva.csv` compara los errores a un mismo número de alzas observadas detectadas en cada prueba. Este análisis de la curva usa las etiquetas de prueba y es independiente de los umbrales fijados con 2022.
-
-```bash
-python -m codigo.analizar_mae
-python -m codigo.eventos_viento --calibrar
-```
-
-Añade `--extender` para repetir la evaluación posterior. [Métricas de concentración](resultados/analisis_mae/) · [Matrices y umbrales de alertas](resultados/eventos_viento/)
-
-## Selección final y prueba de julio a septiembre de 2024
-
-El EDA de la ampliación de SENAMHI en OpenAQ registró 8.088 filas de PM2.5. Después de verificar estaciones, unidades, horas UTC y de Lima, valores finitos no negativos y claves únicas, se conservaron 8.013 lecturas y se excluyeron 75 fuera del periodo. La cobertura por estación fue de 79,6 % a 98,5 %. Se conservaron picos válidos de hasta 128,40 µg/m³. Las horas faltantes se mantuvieron como ausencias. La ampliación se usó como prueba temporal y los ajustes se realizaron con datos anteriores a 2023.
-
-Se entrenaron dos LSTM directas, a 3 y 6 horas, con 24 horas consecutivas de entrada, una máscara de disponibilidad y los mismos predictores tabulares del XGBoost con rezagos de cada horizonte. Cada red tiene 16 unidades LSTM, una capa densa de 24 unidades y una salida para el cambio de concentración. Se ajustó con Adam (0,001), pérdida absoluta, ocho épocas, lotes de 512 y semilla 42. La imputación y el escalado se ajustaron con el entrenamiento de cada pliegue. El estudio local de Montalvo et al. (2022) motivó la prueba. [Estudio de Lima](https://doi.org/10.3389/frsc.2022.849762)
-
-Se eligió el menor MAE macro en validación de 2020 a 2022 y se comprobó la mejora respecto de la referencia en el MAE macro de julio a septiembre. Los errores globales de esa prueba, en µg/m³, fueron los siguientes.
-
-| Horizonte | Modelo final | Pares | MAE de referencia | MAE final | MAE final en lecturas altas |
+| Horizonte | Modelo | Pares de prueba | MAE de persistencia | MAE del modelo | MAE en episodios altos |
 | --- | --- | ---: | ---: | ---: | ---: |
-| 1 h | XGBoost con rezagos y pérdida absoluta | 7.962 | 3,998 | 3,978 | 7,851 |
-| 3 h | LSTM directa | 7.913 | 7,781 | 7,413 | 16,207 |
-| 6 h | LSTM directa | 7.861 | 9,499 | 9,268 | 21,444 |
+| 1 h | XGBoost con pérdida absoluta y peso 3 en episodios altos | 7.969 | 2,810 | 2,471 | 8,078 |
+| 3 h | LSTM directa de 24 horas | 7.940 | 5,488 | 4,335 | 18,894 |
+| 6 h | LSTM directa de 24 horas | 7.920 | 7,260 | 5,027 | 22,850 |
 
-Las lecturas altas se definieron con el P95 por estación del desarrollo. En ese subconjunto el MAE de las referencias fue 7,804, 15,625 y 20,015 µg/m³ a 1, 3 y 6 horas. El clasificador de episodios del apartado anterior se conserva como apoyo de vigilancia.
+La persistencia repite la concentración medida al emitir. Los episodios altos se definen mediante el percentil 95 de desarrollo por estación. Al simular un corte de seis horas previas, el MAE pareado a seis horas subió de 5,020 a 8,139 µg/m³. La evaluación usa meteorología de archivo y emisiones históricas.
 
-Se mantuvo la meteorología de archivo en la evaluación retrospectiva. Las corridas individuales de IFS consultadas comienzan en marzo de 2024 y dejan sin cobertura los pliegues de desarrollo. El extracto de CAMS revisado contiene una observación diaria para una coordenada de Lima desde agosto de 2022. Ambas fuentes quedaron fuera de los predictores finales. [Archivo de pronósticos CAMS](https://ads.atmosphere.copernicus.eu/datasets/cams-global-atmospheric-composition-forecasts?tab=overview) · [Extracto de Lima](https://zenodo.org/records/18673925) · [Corridas individuales de IFS](https://open-meteo.com/en/docs/single-runs-api)
+- [Pronóstico, auditoría y figuras](resultados/pronostico/)
+- [Matrices de confusión y umbrales](resultados/alertas/)
+- [Comparaciones previas](resultados/historico/)
+- [Diccionario de datos y esquema de Redis](resultados/README.md)
+- [Cuaderno de evaluación](Hito3_PM25_Lima.ipynb)
+
+## Entorno e insumos
+
+Los modelos se entrenaron con Python 3.12, XGBoost 3.2 y TensorFlow 2.21. Los archivos JSON en `modelos/pm25-1/` contienen el ensamble ajustado, los pesos de las redes, el orden de variables, la imputación y el escalado.
 
 ```bash
+python -m pip install -r requirements.txt
 python -m pip install "tensorflow-cpu==2.21.0" "keras==3.15.1"
+```
+
+Coloca `aire_lima_completo.csv` y `clima_era5_7_estaciones.parquet` en `datos/`. Los archivos originales se identifican en el anexo de fuentes del proyecto. El CSV del SENAMHI está en UTC y se convierte a `America/Lima` antes del cruce horario. Los scripts obtienen las extensiones de OpenAQ y el viento a 10 m de IFS.
+
+```bash
+python -m codigo.viento
 python -m codigo.actualizar_aire --extender
 python -m codigo.preparar_lecturas_recientes
-python -m codigo.evaluar_lstm --aire-reciente datos/pm25_senamhi_openaq_jul_sep_2024.csv.gz
+python -m codigo.preparar_lecturas_recientes --periodo oct-dic
 ```
 
-El comando de evaluación usa los resultados previos de `resultados/analisis_mae` para contrastar la validación de los modelos tabulares. El cuaderno muestra el EDA, la selección por horizonte y los errores de prueba. [Auditoría y resultados de cierre](resultados/cierre_modelos/)
-
-## Diseño del experimento
-
-| Grupo | Entradas |
-| --- | --- |
-| Base | Los 54 predictores del Hito 2 y su configuración de XGBoost |
-| Viento | Base más velocidad y componentes IFS a 10 m, calma y disponibilidad |
-| Vecinos | Viento más PM2.5 de otras estaciones a las horas t, t−1, t−3 y t−5, resumido con media por distancia, máximo y número de observaciones |
-| Transporte | Vecinos más cinco predictores ponderados por rumbo, velocidad proyectada, distancia y rezago |
-
-La comparación con hiperparámetros fijos controla el efecto de agregar cada grupo. Además se ajustan variantes de XGBoost, HistGradientBoosting y Random Forest. La selección usa el promedio de MAE por estación en los pliegues expansivos de 2020, 2021 y 2022. Cada pliegue entrena con años previos y purga los objetivos que cruzan el corte. La prueba histórica de 2023 a abril de 2024 se usa para comparar con el Hito 2. Las etiquetas futuras y el PM2.5 sin medición quedan fuera de los predictores. Los imputadores meteorológicos se ajustan dentro de cada entrenamiento.
-
-La verificación comparó ambos relojes para las mismas concentraciones. Los 112 pares coinciden bajo UTC con diferencia máxima de 0,005 µg/m³ por redondeo. Como hora de Lima coincidieron 0 de 112. En San Borja, por ejemplo, 10,19 µg/m³ a las 06:00 del CSV el 15 de abril de 2024 coincide con 01:00−05:00 en OpenAQ. El calendario original convertido abarca del 1 de enero de 2015 al 30 de abril de 2024 inclusive.
-
-La dirección meteorológica indica la procedencia. Se convierte en un vector de desplazamiento y se proyecta sobre el rumbo de la estación de origen a la receptora. El peso favorece una diferencia angular de hasta 45° y un tiempo de viaje compatible con la distancia. Para un pronóstico en t+1 se revisa PM2.5 en t a t−5 y viento histórico en esas mismas horas. Con velocidades menores a 0,5 m/s se registra calma y se descarta el ángulo para el transporte. Es una aproximación predictiva de la advección entre estaciones. La resolución de IFS es de aproximadamente 9 km y la evaluación usa datos meteorológicos de archivo.
-
-| Archivo de resultados | Evidencia |
-| --- | --- |
-| `auditoria_preparacion.csv`, `cobertura_viento.csv` | Limpieza y disponibilidad |
-| `distancias_y_rumbos.csv` | Geometría de los pares origen–destino |
-| `cv_modelos.csv`, `cv_por_pliegue.csv`, `cv_soporte_estaciones.csv` | Validación y ajuste |
-| `prueba_modelos.csv`, `prueba_por_estacion.csv`, `umbrales_altos.csv` | Error, cobertura y episodios P95 |
-| `diferencias_prueba.csv`, `prueba_por_alineacion.csv` | Ablación pareada y análisis por condiciones |
-| `permutacion_validacion_2022.csv`, `resumen.json` | Dependencia predictiva y modelo elegido |
-| `verificacion_horaria.csv`, `ejemplos_hora_verificada.csv` | Pares UTC y hora de Lima, unidad y fuentes |
-| `conexion_postgresql.json`, `conexion_pronosticos.csv` | Lectura y escritura con PostgreSQL local |
-
-## Integración con PostgreSQL
-
-La prueba local siembra filas históricas preparadas en `pm25_hito3.entradas`, las lee con Psycopg, aplica el pipeline entrenado y hace upsert en `pm25_hito3.pronosticos`. El contrato está en `codigo/contrato_postgresql.sql`. El módulo de datos que alimente la base debe proporcionar una entrada por estación y hora de emisión, con el JSON de predictores definido por el modelo. Las horas se almacenan como `TIMESTAMPTZ`.
+## Evaluación reproducible
 
 ```bash
-python -m pip install "psycopg[binary]>=3.3,<4" "pgserver==0.1.4"
-python -m codigo.bd --demo-local
+python -m codigo.evaluar_final
+python -m codigo.evaluar_faltantes
+python -m codigo.eventos_viento --prueba-final
+python -m codigo.visualizar
 ```
 
-La demostración levanta PostgreSQL temporal por loopback en Linux y comprueba el mismo resultado al repetir la carga de pronósticos. Para una base compartida ya provisionada y con entradas cargadas, configura la variable de entorno `PM25_DATABASE_URL` y ejecuta `python -m codigo.bd --emitido-en 2023-01-01T12:00:00-05:00` con una hora disponible. La conexión con el módulo de IA del curso requiere su endpoint y el esquema acordado.
+Para reproducir las comparaciones iniciales se requieren también los insumos complementarios de población y meteorología, y el ZIP de datos complementarios descrito en [el archivo histórico](historico/README.md).
+
+## Redis
+
+El almacenamiento usa Redis 8 con Redis Search. Las observaciones se guardan por estación y hora, las predicciones por estación, hora, horizonte y versión, y las ventanas históricas se indexan para recuperar sus vecinos más cercanos. El módulo de preguntas puede consultar las claves de métricas o recuperar episodios medidos similares a una emisión.
+
+```bash
+docker run --name pm25-redis -p 127.0.0.1:6379:6379 -d redis:8.4.8
+python -m codigo.cargar_redis cargar
+python -m codigo.cargar_redis pronosticar
+python -m codigo.cargar_redis similares
+python -m codigo.cargar_redis verificar
+```
+
+Los comandos de consulta aceptan `--estacion` y `--emision`. El ejemplo usa San Borja y el 15 de noviembre de 2024 a las 08:00 de Lima. La URL se configura con `PM25_REDIS_URL`. La verificación contrasta los tres pronósticos con `predicciones.parquet` y los cinco vecinos con una búsqueda exacta.
 
 ## Fuentes
 
-- [SENAMHI, Monitoreo de los contaminantes del aire en Lima Metropolitana](https://www.datosabiertos.gob.pe/dataset/monitoreo-de-los-contaminantes-del-aire-en-lima-metropolitana-servicio-nacional-de).
-- [OpenAQ Open Data on AWS](https://docs.openaq.org/aws/about), observaciones de SENAMHI con desfase horario y unidades explícitas. Ubicaciones [Campo de Marte](https://explore.openaq.org/locations/2415), [San Borja](https://explore.openaq.org/locations/2402), [San Juan de Lurigancho](https://explore.openaq.org/locations/7464) y [San Martín de Porres](https://explore.openaq.org/locations/2351).
-- [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api), datos ECMWF IFS de velocidad y dirección a 10 m. Atribución [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- [ECMWF, convención de dirección meteorológica y componentes del viento](https://confluence.ecmwf.int/pages/viewpage.action?pageId=242074496).
-- [Datos hidrometeorológicos de SENAMHI](https://www.datosabiertos.gob.pe/dataset/datos-hidrometeorol%C3%B3gicos-de-libre-acceso), fuente identificada para contrastar el viento modelado con mediciones disponibles por estación.
-
-Para reproducir el Colab del Hito 2 también se requiere `poblacion_proyectada_2018_2026_7_distritos.csv`. Extrae los CSV de `csv_complementarios_pm25_lima.zip` directamente bajo `datos_complementarios_pm25/` dentro de la carpeta indicada por `PM25_DATA_DIR`. Esa estructura permite que el notebook original localice los archivos del ZIP, que viene con una carpeta interna.
+- [SENAMHI, monitoreo horario de contaminantes](https://www.datosabiertos.gob.pe/dataset/monitoreo-de-los-contaminantes-del-aire-en-lima-metropolitana-servicio-nacional-de).
+- [OpenAQ, archivo abierto en AWS](https://docs.openaq.org/aws/about). Mediciones de SENAMHI para Campo de Marte, San Borja, San Juan de Lurigancho y San Martín de Porres.
+- [ERA5, meteorología horaria](https://doi.org/10.24381/cds.adbb2d47) y [Open-Meteo, archivo meteorológico](https://open-meteo.com/en/docs/historical-weather-api).

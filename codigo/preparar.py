@@ -1,4 +1,4 @@
-"""Reconstruye la matriz del Hito 2 y añade predictores espaciales para t+1."""
+"""Prepara la matriz de la comparación inicial a una hora."""
 
 import argparse
 from contextlib import contextmanager
@@ -148,17 +148,17 @@ def local_features(air, meteo):
     frame["viento_seno"] = np.sin(np.deg2rad(frame["wind_direction_10m"]))
     frame["viento_coseno"] = np.cos(np.deg2rad(frame["wind_direction_10m"]))
     frame["lluvia_en_t"] = frame.precipitation.gt(0).where(frame.precipitation.notna())
-    # Mantener la misma cohorte que el Hito 2 para comparar todos los experimentos.
+    # La cohorte de la comparación inicial mantiene los mismos casos entre modelos.
     return frame.dropna(subset=LOCAL_BASE + [TARGET]).drop(columns="wind_direction_10m").copy()
 
 
 def add_hito2_sources(frame, data_dir):
     with complement_file(data_dir, COMPLEMENT_SERIES) as stream:
         extra = pd.read_csv(stream, usecols=KEY + WEATHER_EXTRA + FIRMS, parse_dates=[TIME])
-    validate_hours(extra, "complementos del Hito 2")
+    validate_hours(extra, "complementos de la comparación inicial")
     weather = frame.merge(extra[KEY + WEATHER_EXTRA], on=KEY, how="left", validate="one_to_one", indicator=True)
     if not weather.pop("_merge").eq("both").all():
-        raise ValueError("Faltan claves del complemento horario del Hito 2")
+        raise ValueError("Faltan claves del complemento horario")
     fires = extra[KEY + FIRMS].copy()
     fires[TIME] += 3 * HOUR
     for radius in (25, 50):
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--datos", type=Path, default=Path("datos"))
     parser.add_argument("--viento", type=Path, default=Path("datos") / WIND_FILE)
-    parser.add_argument("--salida", type=Path, default=Path("resultados"))
+    parser.add_argument("--salida", type=Path, default=Path("resultados/historico"))
     args = parser.parse_args()
     try:
         model_data = prepare_dataset(args.datos, args.viento, args.salida)

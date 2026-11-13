@@ -1,0 +1,48 @@
+{
+  "redis": "8.4.8",
+  "estacion": "SAN_BORJA",
+  "emision_lima": "2024-11-15T08:00:00-05:00",
+  "pronosticos": [
+    {
+      "estacion": "SAN_BORJA",
+      "emitido_en": "2024-11-15T08:00:00-05:00",
+      "objetivo_en": "2024-11-15T09:00:00-05:00",
+      "horizonte_h": 1,
+      "modelo": "xgb_historia_mae",
+      "version_modelo": "pm25-1",
+      "pm25_estimado": 17.81681746482849
+    },
+    {
+      "estacion": "SAN_BORJA",
+      "emitido_en": "2024-11-15T08:00:00-05:00",
+      "objetivo_en": "2024-11-15T11:00:00-05:00",
+      "horizonte_h": 3,
+      "modelo": "lstm_24h",
+      "version_modelo": "pm25-1",
+      "pm25_estimado": 17.548085870742796
+    },
+    {
+      "estacion": "SAN_BORJA",
+      "emitido_en": "2024-11-15T08:00:00-05:00",
+      "objetivo_en": "2024-11-15T14:00:00-05:00",
+      "horizonte_h": 6,
+      "modelo": "lstm_24h",
+      "version_modelo": "pm25-1",
+      "pm25_estimado": 16.71401793003082
+    }
+  ],
+  "observaciones_cargadas": 613704,
+  "episodios_indexados": 269091,
+  "vecinos_recuperados": 5,
+  "primer_vecino": {
+    "distancia": 0.0169927105308,
+    "estacion": "SAN_BORJA",
+    "pm25_actual": 13.92,
+    "pm25_6h": 14.1,
+    "clave": "pm25:episodio:pm25-1:SAN_BORJA:1590109200",
+    "emitido_en": "2020-05-21T20:00:00-05:00"
+  },
+  "consulta_coincide_con_busqueda_exacta": true,
+  "repeticion_sin_duplicados": true,
+  "diferencia_maxima_ug_m3": 4.76837158203125e-07
+}

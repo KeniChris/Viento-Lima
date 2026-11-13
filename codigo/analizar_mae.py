@@ -163,7 +163,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--datos", type=Path, default=Path("datos"))
     parser.add_argument("--viento", type=Path)
-    parser.add_argument("--salida", type=Path, default=Path("resultados/analisis_mae"))
+    parser.add_argument("--salida", type=Path, default=Path("resultados/historico/analisis_mae"))
     parser.add_argument("--horizontes", type=int, choices=HORIZONS, nargs="+", default=HORIZONS)
     parser.add_argument("--hilos", type=int, default=4)
     parser.add_argument("--extender", action="store_true")

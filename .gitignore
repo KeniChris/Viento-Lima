@@ -11,3 +11,8 @@ datos/*.csv.gz
 resultados/*.parquet
 resultados/*.joblib
 resultados/utc/
+resultados/**/*.parquet
+!resultados/pronostico/predicciones.parquet
+modelos/*
+!modelos/pm25-1/
+*.rdb

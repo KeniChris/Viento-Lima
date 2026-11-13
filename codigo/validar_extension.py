@@ -112,7 +112,7 @@ def evaluate_extension(data_dir, output_dir, downloads=None, jobs=4):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--datos", type=Path, default=Path("datos"))
-    parser.add_argument("--resultados", type=Path, default=Path("resultados"))
+    parser.add_argument("--resultados", type=Path, default=Path("resultados/historico"))
     parser.add_argument("--descargas-clima", type=Path)
     parser.add_argument("--hilos", type=int, default=4)
     args = parser.parse_args()
