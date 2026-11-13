@@ -1,0 +1,7 @@
+periodo,metodo,precision_promedio,alertas,aciertos,falsas_alertas,falsos_negativos,verdaderos_negativos,precision,sensibilidad,f1
+historica,regla_viento,,257,36,221,71,964,0.140077821,0.336448598,0.197802198
+historica,modelo_sin_rumbo,0.191634913,257,46,211,61,974,0.178988327,0.429906542,0.252747253
+historica,modelo_con_rumbo,0.1992764,257,48,209,59,976,0.186770428,0.448598131,0.263736264
+openaq_2024,regla_viento,,32,4,28,8,36,0.125,0.333333333,0.181818182
+openaq_2024,modelo_sin_rumbo,0.180220962,32,6,26,6,38,0.1875,0.5,0.272727273
+openaq_2024,modelo_con_rumbo,0.183846019,32,6,26,6,38,0.1875,0.5,0.272727273

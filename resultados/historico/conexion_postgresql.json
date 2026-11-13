@@ -1,0 +1,11 @@
+{
+  "entorno": "PostgreSQL local temporal",
+  "version_postgresql": "16.2",
+  "fuente": "estaciones-hora hist\u00f3ricas de la prueba",
+  "emision_lima": "2023-01-01T00:00:00",
+  "filas_leidas_y_escritas": 7,
+  "filas_despues_de_repetir": 7,
+  "error_maximo_frente_al_notebook": 1.4210854715202004e-14,
+  "tabla_entrada": "pm25_hito3.entradas",
+  "tabla_salida": "pm25_hito3.pronosticos"
+}

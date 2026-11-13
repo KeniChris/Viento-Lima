@@ -1,0 +1,25 @@
+{
+  "arbol": {
+    "variable_raiz": "Cambio de PM2.5 en 1 h",
+    "umbral_raiz": 0.0900000036
+  },
+  "episodio": {
+    "estacion": "SAN_MARTIN_DE_PORRES",
+    "hora_objetivo": "2024-11-02T07:00:00",
+    "pm25_observado": 96.14,
+    "pronosticos": [
+      {
+        "horizonte_h": 1,
+        "estimado": 17.26714707374573
+      },
+      {
+        "horizonte_h": 3,
+        "estimado": 14.09622393846512
+      },
+      {
+        "horizonte_h": 6,
+        "estimado": 10.493975845575333
+      }
+    ]
+  }
+}

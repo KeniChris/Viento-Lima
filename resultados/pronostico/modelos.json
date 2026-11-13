@@ -1,0 +1,20 @@
+[
+  {
+    "horizonte_h": 1,
+    "modelo": "xgb_historia_mae",
+    "version": "pm25-1",
+    "peso_altos": 3
+  },
+  {
+    "horizonte_h": 3,
+    "modelo": "lstm_24h",
+    "version": "pm25-1",
+    "peso_altos": 1
+  },
+  {
+    "horizonte_h": 6,
+    "modelo": "lstm_24h",
+    "version": "pm25-1",
+    "peso_altos": 1
+  }
+]

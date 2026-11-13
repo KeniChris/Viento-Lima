@@ -1,0 +1,9 @@
+lectura_horaria_csv,ESTACION,registros_openaq,pares,coincidencias,coincidencias_exactas,unidad_openaq
+America/Lima,CAMPO_DE_MARTE,52,52,0,0,µg/m³
+America/Lima,SAN_BORJA,52,52,0,0,µg/m³
+America/Lima,SAN_JUAN_DE_LURIGANCHO,52,4,0,0,µg/m³
+America/Lima,SAN_MARTIN_DE_PORRES,52,4,0,0,µg/m³
+UTC,CAMPO_DE_MARTE,52,52,52,50,µg/m³
+UTC,SAN_BORJA,52,52,52,52,µg/m³
+UTC,SAN_JUAN_DE_LURIGANCHO,52,4,4,1,µg/m³
+UTC,SAN_MARTIN_DE_PORRES,52,4,4,1,µg/m³

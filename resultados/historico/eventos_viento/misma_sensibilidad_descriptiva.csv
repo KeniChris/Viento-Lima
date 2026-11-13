@@ -1,0 +1,7 @@
+periodo,metodo,n,umbral_validacion,precision_promedio,alertas,aciertos,falsas_alertas,falsos_negativos,verdaderos_negativos,precision,sensibilidad,f1
+historica,regla_viento,1214,,,216,25,191,67,931,0.115740741,0.27173913,0.162337662
+openaq_2024,regla_viento,68,,,30,1,29,5,33,0.0333333333,0.166666667,0.0555555556
+historica,modelo_sin_rumbo,1214,,0.184180946,121,25,96,67,1026,0.20661157,0.27173913,0.234741784
+openaq_2024,modelo_sin_rumbo,68,,0.14255698,9,1,8,5,54,0.111111111,0.166666667,0.133333333
+historica,modelo_con_rumbo,1214,,0.189169455,117,25,92,67,1030,0.213675214,0.27173913,0.23923445
+openaq_2024,modelo_con_rumbo,68,,0.125648576,12,1,11,5,51,0.0833333333,0.166666667,0.111111111

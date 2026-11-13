@@ -1,0 +1,5 @@
+ESTACION,fecha_invalida,hora_no_entera,estacion_invalida,unidad_invalida,valor_invalido,fuera_periodo,filas_pm25,filas_invalidas,duplicados_exactos,filas_en_conflicto,horas_con_medicion,minimo,mediana,p95,maximo,horas_esperadas,horas_sin_medicion,cobertura,unidad
+CAMPO_DE_MARTE,0,0,0,0,0,25,2199,0,0,0,2174,3.91,24.49,49.112,79.19,2208,34,0.984601449,µg/m³
+SAN_BORJA,0,0,0,0,0,25,2194,0,0,0,2169,8.32,28.85,64.352,128.4,2208,39,0.982336957,µg/m³
+SAN_JUAN_DE_LURIGANCHO,0,0,0,0,0,0,1757,0,0,0,1757,5.52,31.25,59.78,84.66,2208,451,0.795742754,µg/m³
+SAN_MARTIN_DE_PORRES,0,0,0,0,0,25,1938,0,0,0,1913,3.37,24.28,46.67,78.16,2208,295,0.866394928,µg/m³
