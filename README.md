@@ -4,7 +4,7 @@ El proyecto pronostica la concentración de PM2.5 en siete estaciones del SENAMH
 
 ## Resultados
 
-La selección empleó los pliegues cronológicos de 2020, 2021 y 2022. Julio–septiembre de 2024 se usó como comprobación de la selección. La prueba independiente abarcó octubre–diciembre de 2024 en cuatro estaciones.
+La selección empleó los pliegues cronológicos de 2020, 2021 y 2022. Julio-septiembre de 2024 se usó como comprobación de la selección. La prueba independiente abarcó octubre-diciembre de 2024 en cuatro estaciones.
 
 | Horizonte | Modelo | Pares de prueba | MAE de persistencia | MAE del modelo | MAE en episodios altos |
 | --- | --- | ---: | ---: | ---: | ---: |
