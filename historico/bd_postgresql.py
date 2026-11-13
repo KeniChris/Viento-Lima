@@ -1,4 +1,4 @@
-"""Lee predictores horarios en PostgreSQL y publica pronósticos reproducibles."""
+"""Reproduce la integración inicial de una hora en PostgreSQL."""
 
 import argparse
 import json
@@ -17,8 +17,8 @@ import pandas as pd
 import psycopg
 from psycopg.types.json import Jsonb
 
-from .evaluar import TEST_START, predictions
-from .preparar import STATION, TIME
+from codigo.evaluar import TEST_START, predictions
+from codigo.preparar import STATION, TIME
 
 ZONE = "America/Lima"
 DDL = Path(__file__).with_name("contrato_postgresql.sql")
@@ -87,7 +87,7 @@ def seed_demo_inputs(conn, rows, columns):
         issued = row.pop(TIME).tz_localize(ZONE).to_pydatetime()
         payload = {name: (float(value) if pd.notna(value) else None) for name, value in row.items()}
         records.append((station, issued, Jsonb(payload, dumps=lambda obj: json.dumps(obj, allow_nan=False)),
-                        "Reproducción histórica SENAMHI y meteorología del Hito 3"))
+                        "Reproducción histórica de SENAMHI y meteorología"))
     with conn.transaction(), conn.cursor() as cur:
         cur.executemany("""
             INSERT INTO pm25_hito3.entradas (estacion, emitido_en, predictores, fuente)
@@ -169,7 +169,7 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--demo-local", action="store_true")
     group.add_argument("--emitido-en", help="Fecha y hora ISO 8601, con offset, en una base ya provisionada")
-    parser.add_argument("--resultados", type=Path, default=Path("resultados"))
+    parser.add_argument("--resultados", type=Path, default=Path("resultados/historico"))
     args = parser.parse_args()
     model = joblib.load(args.resultados / "modelo_seleccionado.joblib")
     if args.demo_local:

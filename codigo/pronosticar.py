@@ -130,7 +130,7 @@ def arrival_features(levels, rises, speed, u, v, origin_indices, geometry, horiz
     }
 
 
-def build_matrix(air, weather, wind, horizon):
+def build_matrix(air, weather, wind, horizon, *, require_target=True):
     calendar = pd.date_range(air[TIME].min(), air[TIME].max(), freq="h")
     concentration = station_matrix(air, CURRENT, calendar)
     speed = station_matrix(wind, SPEED, calendar)
@@ -173,7 +173,8 @@ def build_matrix(air, weather, wind, horizon):
             row[f"vecinos_alza_{lag}h"] = max_observed(increases, np.isfinite(increases))
         spatial = arrival_features(levels, rises, speed_history, u_history, v_history, origins, geometry, horizon)
         row = row.assign(**spatial)
-        frames.append(row.loc[row[TIME].ge(START)].dropna(subset=[CURRENT, TARGET]))
+        required = [CURRENT, TARGET] if require_target else [CURRENT]
+        frames.append(row.loc[row[TIME].ge(START)].dropna(subset=required))
     frame = pd.concat(frames, ignore_index=True).merge(weather, on=KEY, how="left", validate="one_to_one")
     return frame.sort_values([TIME, STATION], ignore_index=True)
 
@@ -321,7 +322,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--datos", type=Path, default=Path("datos"))
     parser.add_argument("--viento", type=Path)
-    parser.add_argument("--salida", type=Path, default=Path("resultados/multihorizonte"))
+    parser.add_argument("--salida", type=Path, default=Path("resultados/historico/multihorizonte"))
     parser.add_argument("--horizontes", nargs="+", type=int, choices=range(1, 7), default=HORIZONS)
     parser.add_argument("--hilos", type=int, default=4)
     parser.add_argument("--extender", action="store_true", help="Evalúa también las lecturas de mayo-junio de OpenAQ")

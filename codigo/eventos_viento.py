@@ -16,7 +16,7 @@ from .evaluar import SEED, TEST_START
 from .preparar import CURRENT, HOUR, load_air, station_geometry, wind_components
 from .pronosticar import START, station_matrix
 from .validar_extension import WEATHER_END, WEATHER_START, extended_air, weather_response
-from .viento import CALM_MS, DIRECTION, KEY, SPEED, STATIONS, TIME, WIND_FILE
+from .viento import CALM_MS, DIRECTION, KEY, SPEED, STATION, STATIONS, TIME, WIND_FILE
 from .viento import clean_wind, load_wind, parse_wind_csv, validate_hours
 
 
@@ -189,14 +189,18 @@ def cutoff_for_hits(labels, probability, hits):
     return float(positives[-hits])
 
 
-def calibrate(cases, extension):
+def calibrate(cases, extension, holdout_start=None):
     observed = cases.loc[cases.ventana_observada]
     end = observed[TIME] + HORIZON * HOUR
     train = observed.loc[end.lt(VALIDATION_START)]
     cohorts = {"validacion_2022": observed.loc[observed[TIME].ge(VALIDATION_START) & end.lt(TEST_START)],
                "historica": observed.loc[observed[TIME].ge(TEST_START) & end.lt(EXTENSION_START)]}
     if extension:
-        cohorts["openaq_2024"] = observed.loc[observed[TIME].ge(EXTENSION_START)]
+        later = observed[TIME].ge(EXTENSION_START)
+        if holdout_start is not None:
+            cohorts["prueba_independiente"] = observed.loc[observed[TIME].ge(holdout_start)]
+            later &= end.lt(holdout_start)
+        cohorts["openaq_2024"] = observed.loc[later]
     validation = cohorts["validacion_2022"]
     if train[TARGET].nunique() != 2 or not validation[TARGET].any():
         raise ValueError("Se requieren alzas en entrenamiento anterior a 2022 y validación de 2022")
@@ -270,13 +274,27 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--datos", type=Path, default=Path("datos"))
     parser.add_argument("--viento", type=Path)
-    parser.add_argument("--salida", type=Path, default=Path("resultados/eventos_viento"))
+    parser.add_argument("--salida", type=Path)
     parser.add_argument("--extender", action="store_true", help="Evalúa también la extensión de OpenAQ de mayo–junio de 2024")
     parser.add_argument("--descargas-clima", type=Path, help="Carpeta con ifs_2024.csv para la extensión")
     parser.add_argument("--calibrar", action="store_true", help="Fija umbrales con datos de 2022 y evalúa sus errores posteriores")
+    parser.add_argument("--prueba-final", action="store_true", help="Evalúa el umbral fijo hasta diciembre de 2024")
     args = parser.parse_args()
+    if args.prueba_final:
+        from .modelos_finales import HOLDOUT_START, load_sources
+
+        air, _, wind = load_sources(args.datos, args.viento or args.datos / WIND_FILE, args.descargas_clima)
+        cases, thresholds = make_cases(air, wind, VALIDATION_START)
+        tables = calibrate(cases, extension=True, holdout_start=HOLDOUT_START)
+        output = args.salida or Path("resultados/alertas")
+        output.mkdir(parents=True, exist_ok=True)
+        confusion = pd.DataFrame(tables["alertas_umbral_validado"])
+        confusion.to_csv(output / "matriz_confusion.csv", index=False, float_format="%.9g")
+        thresholds.to_csv(output / "umbrales_2021.csv", index_label=STATION, float_format="%.9g")
+        print(confusion.to_string(index=False))
+        return
     try:
-        results = run(args.datos, args.viento or args.datos / WIND_FILE, args.salida,
+        results = run(args.datos, args.viento or args.datos / WIND_FILE, args.salida or Path("resultados/historico/eventos_viento"),
                       args.extender, args.descargas_clima, args.calibrar)
     except FileNotFoundError as error:
         parser.error(f"Falta un insumo: {error.filename or error}. Revisa --datos y --viento.")

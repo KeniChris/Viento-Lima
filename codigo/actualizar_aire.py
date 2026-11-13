@@ -77,7 +77,7 @@ def verify_clock(raw_path, output_dir):
     raw_path = Path(raw_path)
     if not raw_path.is_file():
         raise FileNotFoundError(
-            f"Falta {raw_path}. Copia el CSV del Hito 2 a datos/ o indica su carpeta con --datos."
+            f"Falta {raw_path}. Copia el CSV de SENAMHI a datos/ o indica su carpeta con --datos."
         )
     items = [(station, daily_key(location, day))
              for station, location in LOCATIONS.items() for day in CHECK_DAYS]
@@ -145,7 +145,7 @@ def download_extension(data_dir, output_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--datos", type=Path, default=Path("datos"))
-    parser.add_argument("--salida", type=Path, default=Path("resultados"))
+    parser.add_argument("--salida", type=Path, default=Path("resultados/historico"))
     parser.add_argument("--extender", action="store_true")
     args = parser.parse_args()
     try:
