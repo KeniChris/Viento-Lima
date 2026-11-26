@@ -23,6 +23,10 @@ RESULTS = Path("resultados")
 DEFAULT_URL = "redis://127.0.0.1:6379/0"
 
 
+class NoObservations(ValueError):
+    pass
+
+
 def redis_client(url=None):
     client = redis.Redis.from_url(url or os.environ.get("PM25_REDIS_URL", DEFAULT_URL),
                                  decode_responses=False, protocol=2, socket_timeout=30)
@@ -40,24 +44,31 @@ def pack(mapping):
     return json.dumps(mapping, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
 
 
-def hour_key(kind, station, when, horizon=None):
+def hour_key(kind, station, when, horizon=None, *, version=VERSION):
     suffix = f":{horizon}h" if horizon is not None else ""
-    return f"pm25:{kind}:{VERSION}:{station}:{timestamp(when)}{suffix}"
+    return f"pm25:{kind}:{version}:{station}:{timestamp(when)}{suffix}"
 
 
-def load_observations(client, air, weather, wind):
+def load_observations(client, air, weather, wind, *, version=VERSION, web_index=False):
     records = air[KEY + [CURRENT]].merge(weather[KEY + METEO[:4]], on=KEY, how="outer", validate="one_to_one")
     records = records.merge(wind[KEY + [SPEED, DIRECTION]], on=KEY, how="outer", validate="one_to_one")
     records = records.dropna(subset=[CURRENT, *METEO[:4], SPEED, DIRECTION], how="all")
     fields = [CURRENT, *METEO[:4], SPEED, DIRECTION]
-    pipeline = client.pipeline(transaction=False)
+    pipeline = client.pipeline(transaction=web_index)
     for i, (station, time, *values) in enumerate(records[KEY + fields].itertuples(index=False, name=None), 1):
         source = "SENAMHI" if time < pd.Timestamp("2024-05-01") else "SENAMHI vía OpenAQ"
         payload = dict(zip(fields, map(json_value, values), strict=True))
         payload.update(estacion=station, fecha_unix=timestamp(time),
                        fuente_pm25=source if payload[CURRENT] is not None else None,
                        fuente_meteorologia="ERA5", fuente_viento="IFS a 10 m")
-        pipeline.set(hour_key("observacion", station, time), pack(payload))
+        pipeline.set(hour_key("observacion", station, time, version=version), pack(payload))
+        if web_index:
+            index_key = f"pm25:web:observaciones:{version}:{station}"
+            member = str(payload["fecha_unix"])
+            if payload[CURRENT] is None:
+                pipeline.zrem(index_key, member)
+            else:
+                pipeline.zadd(index_key, {member: payload["fecha_unix"]})
         if i % 2000 == 0:
             pipeline.execute()
     pipeline.execute()
@@ -96,12 +107,12 @@ def load_metrics(client, results):
         pipe.execute()
 
 
-def read_observations(client, when):
+def read_observations(client, when, *, version=VERSION):
     calendar = pd.date_range(when - pd.Timedelta(hours=168), when, freq="h")
-    keys = [hour_key("observacion", station, t) for station in STATIONS for t in calendar]
+    keys = [hour_key("observacion", station, t, version=version) for station in STATIONS for t in calendar]
     records = [json.loads(value) for value in client.mget(keys) if value is not None]
     if not records:
-        raise ValueError("Redis no contiene observaciones para la ventana solicitada")
+        raise NoObservations("Redis no contiene observaciones para la ventana solicitada")
     rows = pd.DataFrame(records).rename(columns={"estacion": STATION})
     rows[TIME] = pd.to_datetime(rows.pop("fecha_unix"), unit="s", utc=True).dt.tz_convert("America/Lima").dt.tz_localize(None)
     columns = [CURRENT, *METEO[:4], SPEED, DIRECTION]

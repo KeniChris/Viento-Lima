@@ -1,0 +1,23 @@
+{
+  "periodo": "ene_mar_2025",
+  "version_recomendada": "pm25-2",
+  "candidato": "pm25-2",
+  "criterio": "Reduce MAE macro y no incrementa MAE en altos frente a pm25-1",
+  "filas_entrenamiento_original": 207756,
+  "filas_entrenamiento_ampliado": 278045,
+  "reproduccion_max_error_absoluto_ug_m3": {
+    "oct_dic_2024": 0.0,
+    "ene_mar_2025": 0.0
+  },
+  "hiperparametros": {
+    "n_estimators": 300,
+    "max_depth": 5,
+    "learning_rate": 0.03,
+    "min_child_weight": 20,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "reg_lambda": 8,
+    "objective": "reg:absoluteerror"
+  },
+  "peso_altos": 3
+}

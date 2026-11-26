@@ -20,6 +20,14 @@ FILENAME = "pm25_senamhi_openaq_jul_sep_2024.csv.gz"
 TEST_START = END + pd.Timedelta(hours=1)
 TEST_END = pd.Timestamp("2024-12-31 23:00")
 TEST_FILE = "pm25_senamhi_openaq_oct_dic_2024.csv.gz"
+Q1_START = pd.Timestamp("2025-01-01")
+Q1_END = pd.Timestamp("2025-03-31 23:00")
+Q1_FILE = "pm25_senamhi_openaq_ene_mar_2025.csv.gz"
+PERIODS = {
+    "jul-sep": (START, END, FILENAME, "jul_sep_2024", "historico/cierre_modelos"),
+    "oct-dic": (TEST_START, TEST_END, TEST_FILE, "oct_dic_2024", "pronostico"),
+    "ene-mar-2025": (Q1_START, Q1_END, Q1_FILE, "ene_mar_2025", "ajuste_1h"),
+}
 
 
 def fetch_day(item, cache):
@@ -104,13 +112,10 @@ def main():
     parser.add_argument("--datos", type=Path, default=Path("datos"))
     parser.add_argument("--salida", type=Path)
     parser.add_argument("--archivos", type=Path, help="Directorio con archivos diarios originales de OpenAQ")
-    parser.add_argument("--periodo", choices=["jul-sep", "oct-dic"], default="jul-sep")
+    parser.add_argument("--periodo", choices=PERIODS, default="jul-sep")
     args = parser.parse_args()
-    start, end, filename, suffix = (
-        (TEST_START, TEST_END, TEST_FILE, "oct_dic")
-        if args.periodo == "oct-dic" else (START, END, FILENAME, "jul_sep")
-    )
-    output = args.salida or Path("resultados/pronostico" if suffix == "oct_dic" else "resultados/historico/cierre_modelos")
+    start, end, filename, suffix, result_dir = PERIODS[args.periodo]
+    output = args.salida or Path("resultados") / result_dir
     days = pd.date_range(start, end + pd.Timedelta(hours=1), freq="D")
     items = [(station, day) for day in days for station in LOCATIONS]
     with ThreadPoolExecutor(max_workers=8) as pool:
@@ -134,9 +139,9 @@ def main():
     args.datos.mkdir(parents=True, exist_ok=True)
     output.mkdir(parents=True, exist_ok=True)
     cleaned.to_csv(args.datos / filename, index=False, compression={"method": "gzip", "mtime": 1})
-    audit.to_csv(output / f"eda_openaq_{suffix}_2024.csv", index=False, float_format="%.9g")
+    audit.to_csv(output / f"eda_openaq_{suffix}.csv", index=False, float_format="%.9g")
     statuses.groupby([STATION, "http"], dropna=False).size().rename("archivos").reset_index().to_csv(
-        output / f"acceso_openaq_{suffix}_2024.csv", index=False,
+        output / f"acceso_openaq_{suffix}.csv", index=False,
     )
     print(audit[[STATION, "horas_con_medicion", "horas_sin_medicion", "cobertura", "mediana", "p95"]].to_string(index=False))
 

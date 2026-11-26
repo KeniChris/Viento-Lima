@@ -15,4 +15,5 @@ resultados/**/*.parquet
 !resultados/pronostico/predicciones.parquet
 modelos/*
 !modelos/pm25-1/
+!modelos/pm25-2/
 *.rdb

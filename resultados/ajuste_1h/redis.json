@@ -1,0 +1,49 @@
+{
+  "redis": "6.2.14",
+  "verificaciones": [
+    {
+      "version": "pm25-1",
+      "clave": "pm25:pronostico:pm25-1:SAN_BORJA:1731675600:1h",
+      "PM2_5_emision": 15.19,
+      "observaciones_cargadas": 1183,
+      "pronostico_historico": {
+        "estacion": "SAN_BORJA",
+        "emitido_en": "2024-11-15T08:00:00-05:00",
+        "objetivo_en": "2024-11-15T09:00:00-05:00",
+        "calculado_en": "2026-11-26T15:13:25.421153-05:00",
+        "horizonte_h": 1,
+        "modelo": "xgb_historia_mae",
+        "version_modelo": "pm25-1",
+        "pm25_estimado": 17.81681746482849,
+        "modo": "HISTORICO",
+        "estado": "HISTORICO"
+      },
+      "resultado_repetible": true,
+      "hora_vigente": true,
+      "emision_vencida_sin_escritura": true,
+      "estacion_sin_medicion": true
+    },
+    {
+      "version": "pm25-2",
+      "clave": "pm25:pronostico:pm25-2:SAN_BORJA:1731675600:1h",
+      "PM2_5_emision": 15.19,
+      "observaciones_cargadas": 1183,
+      "pronostico_historico": {
+        "estacion": "SAN_BORJA",
+        "emitido_en": "2024-11-15T08:00:00-05:00",
+        "objetivo_en": "2024-11-15T09:00:00-05:00",
+        "calculado_en": "2026-11-26T15:13:26.380335-05:00",
+        "horizonte_h": 1,
+        "modelo": "xgb_historia_mae",
+        "version_modelo": "pm25-2",
+        "pm25_estimado": 18.530539455413816,
+        "modo": "HISTORICO",
+        "estado": "HISTORICO"
+      },
+      "resultado_repetible": true,
+      "hora_vigente": true,
+      "emision_vencida_sin_escritura": true,
+      "estacion_sin_medicion": true
+    }
+  ]
+}

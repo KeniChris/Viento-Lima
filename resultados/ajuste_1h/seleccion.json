@@ -1,0 +1,27 @@
+{
+  "control": {
+    "max_depth": 3,
+    "learning_rate": 0.07,
+    "n_estimators": 150,
+    "peso_altos": 3
+  },
+  "candidato": {
+    "max_depth": 5,
+    "learning_rate": 0.03,
+    "n_estimators": 300,
+    "peso_altos": 3
+  },
+  "rejilla": {
+    "max_depth": 5,
+    "learning_rate": 0.03,
+    "n_estimators": 300,
+    "peso_altos": 3
+  },
+  "pliegues": [
+    2020,
+    2021,
+    2022
+  ],
+  "criterio": "Menor MAE macro con MAE en altos igual o menor al del control",
+  "corte_entrenamiento_ampliado": "2024-10-01T00:00:00"
+}

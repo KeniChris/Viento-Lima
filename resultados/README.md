@@ -9,6 +9,7 @@
 | `pronostico/predicciones.parquet`, `pronostico/figuras/` | Mediciones, pronósticos y figuras de los tres modelos. |
 | `pronostico/redis.json`, `alertas/` | Verificación de Redis, matrices de confusión y umbrales de alza. |
 | `historico/` | Comparaciones iniciales, selección previa, auditorías y datos de apoyo. |
+| [`ajuste_1h/`](ajuste_1h/) | Selección de hiperparámetros, prueba de `pm25-2` y evidencia del publicador web. |
 
 ## Pronóstico y verificación
 
@@ -28,3 +29,13 @@ Los modelos reciben los rezagos exactos, medias recientes, cambios de concentrac
 | `pm25:metrica:pm25-1:*`, `pm25:alerta:pm25-1:*` | Métricas por estación y resultados del clasificador de episodios. |
 
 El índice `idx:pm25:episodios:pm25-1` usa distancia L2 sobre PM2.5 actual, cambio en tres horas, media de seis horas, humedad y componentes este y norte del viento. La consulta filtra por estación y excluye episodios cuyo desenlace de seis horas no precede la emisión consultada. El desenlace se devuelve como contexto observado.
+
+## Publicador de una hora para la web
+
+| Patrón de clave | Tipo y campos |
+| --- | --- |
+| `pm25:observacion:<version>:<estación>:<segundos UTC>` | Cadena JSON. El campo `PM2_5` contiene la concentración actual en µg/m³ o `null`. Se conservan `fecha_unix`, `estacion`, `fuente_pm25` y las variables meteorológicas utilizadas. |
+| `pm25:pronostico:<version>:<estación>:<segundos UTC>:1h` | Hash. Incluye `estacion`, `emitido_en`, `objetivo_en`, `calculado_en`, `horizonte_h`, `pm25_estimado`, `modelo`, `version_modelo` y `modo`. Los tiempos de respuesta se representan con el desfase de Lima. |
+| `pm25:web:observaciones:<version>:<estación>` | Conjunto ordenado de horas con PM2.5 válido. El miembro es el instante en segundos UTC y la puntuación es ese mismo valor. Se rellena al cargar el histórico. |
+
+El cálculo a una hora parte de la lectura local de emisión. La diferencia entre emisión y objetivo es de una hora. La hora de cálculo de una emisión actual cae dentro de ese intervalo. La versión recomendada para nuevas emisiones es `pm25-2`. El ejemplo de San Borja usa `pm25-1` para reproducir `17,816817 µg/m³` para las 09:00 del 15 de noviembre de 2024.
