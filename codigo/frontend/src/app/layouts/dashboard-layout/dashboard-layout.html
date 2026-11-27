@@ -1,0 +1,13 @@
+<mat-toolbar class="header">
+  <span class="logo">Viento Lima</span>
+  <div class="user">
+    @if (auth.session(); as usuario) {
+      <span class="user-email">{{ usuario.correo }}</span>
+    }
+    <button mat-stroked-button class="logout" type="button" (click)="auth.logout()">Cerrar sesión</button>
+  </div>
+</mat-toolbar>
+
+<main class="content">
+  <router-outlet />
+</main>

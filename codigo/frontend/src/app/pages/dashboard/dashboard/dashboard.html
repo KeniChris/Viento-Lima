@@ -1,0 +1,104 @@
+<header class="page-heading">
+  <h1 class="page-title">Pronóstico de PM2.5</h1>
+  <p class="page-subtitle">Medición reciente, pronóstico a una hora e historial de 24 horas por estación.</p>
+</header>
+
+<form class="acciones" [formGroup]="form">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="selector">
+    <mat-label>Estación</mat-label>
+    <mat-select formControlName="estacion">
+      @for (e of estaciones(); track e.id) {
+        <mat-option [value]="e.id">{{ e.nombre }}</mat-option>
+      }
+    </mat-select>
+    @if (form.controls.estacion.hasError('required')) {
+      <mat-error>Selecciona una estación</mat-error>
+    }
+  </mat-form-field>
+
+  <button mat-stroked-button class="accion" type="button" [disabled]="cargando()" (click)="actualizar()">
+    <mat-icon>refresh</mat-icon>
+    Actualizar
+  </button>
+  <button mat-stroked-button class="accion" type="button" [disabled]="cargando()" (click)="alternarDemostracion()">
+    @if (demostracion()) {
+      Volver a datos actuales
+    } @else {
+      Ver demostración histórica
+    }
+  </button>
+</form>
+
+@if (cargando()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <mat-card class="aviso aviso-error" appearance="outlined">
+    <p>{{ error() }}</p>
+    <button mat-flat-button type="button" (click)="actualizar()">Reintentar</button>
+  </mat-card>
+}
+
+@if (consulta(); as c) {
+  <section class="tarjetas" aria-label="Resumen de la estación">
+    <mat-card class="tarjeta" appearance="outlined">
+      <p class="tarjeta-label">Última medición</p>
+      @if (c.ultima_medicion; as m) {
+        <p class="tarjeta-valor">{{ m.pm25 | number: '1.2-2' }} <span class="unidad">µg/m³</span></p>
+        <p class="tarjeta-nota">{{ m.fecha_hora | date: 'd MMM y, HH:mm' : zona }} · {{ m.fuente }}</p>
+      } @else {
+        <p class="tarjeta-vacia">Esta estación no tiene mediciones registradas.</p>
+      }
+    </mat-card>
+
+    <mat-card class="tarjeta" appearance="outlined">
+      <div class="tarjeta-encabezado">
+        <p class="tarjeta-label">Pronóstico a 1 hora</p>
+        @switch (c.estado) {
+          @case ('HISTORICO') {
+            <mat-chip class="chip-demo">Demostración histórica</mat-chip>
+          }
+          @case ('VIGENTE') {
+            <mat-chip class="chip-vigente">Vigente</mat-chip>
+          }
+        }
+      </div>
+
+      @switch (c.estado) {
+        @case ('SIN_DATOS_RECIENTES') {
+          <p class="tarjeta-vacia">
+            Sin datos recientes: la estación no tiene una lectura para la hora actual, por eso no se calcula el
+            pronóstico.
+          </p>
+        }
+        @case ('SIN_PRONOSTICO') {
+          <p class="tarjeta-vacia">No hay pronóstico para la hora consultada.</p>
+        }
+        @default {
+          @if (c.pronostico; as p) {
+            <p class="tarjeta-valor">{{ p.pm25_estimado | number: '1.2-2' }} <span class="unidad">µg/m³</span></p>
+            <p class="tarjeta-nota">Para las {{ p.objetivo_en | date: 'HH:mm' : zona }} del {{ p.objetivo_en | date: 'd MMM y' : zona }}</p>
+            <p class="tarjeta-detalle">
+              Con la medición de las {{ p.emitido_en | date: 'HH:mm' : zona }}
+              @if (p.calculado_en) {
+                · calculado a las {{ p.calculado_en | date: 'HH:mm' : zona }}
+              }
+              · modelo {{ p.version_modelo }}
+            </p>
+          }
+        }
+      }
+    </mat-card>
+  </section>
+
+  <mat-card class="panel" appearance="outlined">
+    <h2 class="panel-title">Últimas 24 horas</h2>
+    <p class="panel-nota">Horas de Lima. Las horas sin lectura quedan como huecos en la línea.</p>
+    @if (grafico(); as g) {
+      <div class="grafico">
+        <canvas baseChart [type]="g.type" [data]="g.data" [options]="g.options"></canvas>
+      </div>
+    }
+  </mat-card>
+}

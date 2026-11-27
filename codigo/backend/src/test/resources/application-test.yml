@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:vientolima;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+app:
+  pm25:
+    fuente: fixtures
+    reloj-fijo: "2024-11-15T08:15:00-05:00"
