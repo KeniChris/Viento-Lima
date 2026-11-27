@@ -1,0 +1,24 @@
+# PostgreSQL (cuentas de usuario) y Redis (pronósticos). Desde la carpeta codigo/: docker compose up -d
+services:
+  postgres:
+    image: postgres:16
+    container_name: viento-postgres
+    environment:
+      POSTGRES_DB: viento_lima
+      POSTGRES_USER: viento
+      POSTGRES_PASSWORD: viento
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - viento_pgdata:/var/lib/postgresql/data
+
+  # Solo hace falta con PM25_FUENTE=redis. Mismo puerto que usa codigo/cargar_redis.py.
+  # Para el índice vectorial de episodios (cargar_redis.py cargar) el README del proyecto usa redis:8.4.8.
+  redis:
+    image: redis:8.4.8
+    container_name: pm25-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+
+volumes:
+  viento_pgdata:

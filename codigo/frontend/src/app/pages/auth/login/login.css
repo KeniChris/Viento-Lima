@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+}
+
+a {
+  text-decoration: none;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-title {
+  font: var(--font-h1);
+}
+
+.form-text {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+mat-form-field {
+  width: 100%;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+}
+
+.forgot {
+  align-self: flex-end;
+  font: var(--font-small);
+  color: var(--accent-cyan);
+}
+
+.submit {
+  width: 100%;
+  height: 52px;
+  font: var(--font-button);
+  border-radius: var(--radius-md);
+}
+
+.form-footer {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  font: var(--font-small);
+  color: var(--text-muted);
+}
+
+.form-footer a {
+  color: var(--accent-cyan);
+}
+
+.api-error {
+  margin: 0;
+  font: var(--font-small);
+  color: var(--state-error);
+}
+
+.api-ok {
+  margin: 0;
+  font: var(--font-small);
+  color: var(--state-success);
+}

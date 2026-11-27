@@ -1,0 +1,39 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: lax
+
+spring:
+  application:
+    name: viento-lima-api
+  # Lee .env de la carpeta donde se ejecuta la app (solo local). Con "optional:" no falla si no existe.
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:15432/viento_lima}
+    username: ${DB_USERNAME:viento}
+    password: ${DB_PASSWORD:viento}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # la tabla la crea Flyway (db/migration)
+  flyway:
+    enabled: true
+  data:
+    redis:
+      # Misma variable de entorno que usa codigo/cargar_redis.py
+      url: ${PM25_REDIS_URL:redis://127.0.0.1:6379/0}
+
+app:
+  pm25:
+    # redis = pronósticos publicados por Python | fixtures = datos de prueba del contrato
+    fuente: ${PM25_FUENTE:redis}
+    # ISO 8601 con offset. Vacío = hora real de America/Lima.
+    reloj-fijo: ${PM25_RELOJ_FIJO:}
+    version-modelo: ${PM25_MODELO_VERSION:${PM25_VERSION_MODELO:pm25-2}}
+    # Horas hacia atrás que revisa el lector de Redis para la "última medición" (cargar_redis lee 168 h)
+    busqueda-ultima-medicion-horas: 168

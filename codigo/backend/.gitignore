@@ -1,0 +1,9 @@
+# Variables de entorno con secretos (el .env.example SÍ se sube)
+.env
+
+# Compilación e IDE
+target/
+.idea/
+
+# macOS
+.DS_Store

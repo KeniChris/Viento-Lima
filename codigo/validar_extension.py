@@ -20,17 +20,18 @@ WEATHER_START = "2024-04-29"
 WEATHER_END = "2024-12-31"
 
 
-def weather_response(model, hourly, downloads):
+def weather_response(model, hourly, downloads, start=WEATHER_START, end=WEATHER_END):
     if downloads is not None:
-        file_name = "era5_2024.csv" if model == "era5" else "ifs_2024.csv"
+        source = "era5" if model == "era5" else "ifs"
+        file_name = f"{source}_{pd.Timestamp(end).year}.csv"
         return (downloads / file_name).read_text(encoding="utf-8-sig")
-    url = request_url(WEATHER_START, WEATHER_END, model=model, hourly=",".join(hourly))
+    url = request_url(start, end, model=model, hourly=",".join(hourly))
     with urlopen(url, timeout=90) as response:
         return response.read().decode("utf-8-sig")
 
 
-def extension_meteorology(downloads):
-    era_response = weather_response("era5", METEO, downloads)
+def extension_meteorology(downloads, *, start=WEATHER_START, end=WEATHER_END):
+    era_response = weather_response("era5", METEO, downloads, start, end)
     metadata, hourly_csv = era_response.replace("\r\n", "\n").split("\n\n", maxsplit=1)
     metadata = pd.read_csv(StringIO(metadata))
     if metadata.location_id.tolist() != list(range(len(STATIONS))) or not metadata.timezone.eq(PERU).all():
@@ -40,8 +41,8 @@ def extension_meteorology(downloads):
     meteo[TIME] = pd.to_datetime(meteo.pop("time"), format="%Y-%m-%dT%H:%M")
     meteo = meteo[KEY + METEO]
     validate_hours(meteo, "ERA5 de extensión")
-    ifs_response = weather_response("ecmwf_ifs", METEO[-2:], downloads)
-    wind = parse_wind_csv(ifs_response, WEATHER_START, WEATHER_END)
+    ifs_response = weather_response("ecmwf_ifs", METEO[-2:], downloads, start, end)
+    wind = parse_wind_csv(ifs_response, start, end)
     clean_wind(wind)
     return meteo, wind
 

@@ -1,0 +1,42 @@
+<form class="form" [formGroup]="form" (ngSubmit)="entrar()">
+  <h2 class="form-title">Inicia sesión</h2>
+  <p class="form-text">Ingresa para consultar el pronóstico de PM2.5.</p>
+
+  @if (sesionVencida) {
+    <p class="api-error">Tu sesión venció. Ingresa de nuevo.</p>
+  }
+  @if (cuentaCreada) {
+    <p class="api-ok">Cuenta creada. Ya puedes iniciar sesión.</p>
+  }
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Correo electrónico</mat-label>
+    <input matInput type="email" formControlName="correo" autocomplete="email" placeholder="tu@correo.com" />
+    @if (form.controls.correo.hasError('required')) {
+      <mat-error>Ingresa tu correo electrónico</mat-error>
+    } @else if (form.controls.correo.hasError('email')) {
+      <mat-error>Ingresa un correo válido</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Contraseña</mat-label>
+    <input matInput type="password" formControlName="contrasena" autocomplete="current-password" placeholder="••••••••••" />
+    @if (form.controls.contrasena.hasError('required')) {
+      <mat-error>Ingresa tu contraseña</mat-error>
+    }
+  </mat-form-field>
+
+  @if (error()) {
+    <p class="api-error">{{ error() }}</p>
+  }
+
+  <button mat-flat-button class="submit" type="submit" [disabled]="form.invalid || cargando()">
+    Iniciar sesión
+  </button>
+
+  <p class="form-footer">
+    <span>¿No tienes cuenta?</span>
+    <a routerLink="/registro">Crear cuenta</a>
+  </p>
+</form>
