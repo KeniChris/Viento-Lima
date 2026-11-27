@@ -13,6 +13,21 @@ La prueba reservada de enero a marzo de 2025 compara las mismas 8 384 horas obje
 
 Las métricas tienen unidad µg/m³. El sesgo es estimado menos observado. A entrena con 207 756 pares hasta 2022. B y C comparten 278 045 pares hasta septiembre de 2024. El cambio de MAE global de B frente a A fue −0,0047, con IC del 95 % de −0,0105 a 0,0004. C frente a B cambió −0,0409, con intervalo de −0,0635 a −0,0225. Los intervalos se calcularon por bloques de siete días. C redujo ambos errores de selección frente a A, con mayor subestimación media en los episodios altos. Detectó cuatro de 35 cruces al P95 en la prueba de 2025.
 
+## Sensibilidad a faltantes de ERA5 e IFS
+
+Para evaluar la disponibilidad de datos en la web local, se volvieron a pronosticar los mismos 8 384 pares de enero–marzo de 2025 con `pm25-2`. Se simularon faltantes al asignar `NaN` a las cuatro variables de ERA5 (temperatura, humedad relativa, precipitación y presión) y a las tres de IFS (velocidad y componentes este y norte del viento). Se aplicó el preprocesamiento guardado, con el modelo y los umbrales de la prueba original.
+
+| Datos de entrada | MAE global (µg/m³) | MAE en altos (µg/m³) | Cruces al P95 detectados |
+| --- | ---: | ---: | ---: |
+| Todas las variables | 2,178 | 14,371 | 4 de 35 |
+| Sin ERA5 | 2,219 | 14,229 | 5 de 35 |
+| Sin IFS | 2,186 | 14,457 | 2 de 35 |
+| Sin ERA5 ni IFS | 2,228 | 14,339 | 3 de 35 |
+
+Retirar ambos grupos elevó el MAE global en 0,051 µg/m³. Los cruces al P95 fueron poco frecuentes en los cuatro escenarios. La [demostración local](../../README.md#pronóstico-para-la-web-local) usa las mediciones de PM2.5 junto con los datos meteorológicos de archivo.
+
+## Archivos de evaluación
+
 | Archivo | Contenido |
 | --- | --- |
 | [seleccion.json](seleccion.json) | Hiperparámetros fijados con los pliegues de desarrollo. |

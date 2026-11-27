@@ -63,6 +63,23 @@ python -m codigo.ajustar_xgb evaluar
 
 Define otra ruta con `--salida` si quieres comparar una reproducción con los resultados versionados. `--descargas-clima` admite las respuestas CSV de ERA5 e IFS por año (`era5_2024.csv`, `ifs_2024.csv`, `era5_2025.csv`, `ifs_2025.csv`). El candidato queda en `modelos/pm25-2/1/`.
 
+## Pronóstico para la web local
+
+Desde la raíz del repositorio, instala las dependencias con Python 3.12 y genera el pronóstico.
+
+```bash
+python -m pip install -r requirements.txt
+python -m codigo.pronostico_local --salida pronostico.json
+```
+
+El comando ejecuta `pm25-2` y escribe un JSON con los campos del contrato del dashboard. La muestra incluida permite consultar las 07:00 y las 08:00 del 15 de noviembre de 2024 en la zona de Lima. Para reproducir la referencia se puede elegir `--version pm25-1`. Para consultar otras fechas, usa `--datos datos` y `--emision` con fecha, hora entera y desfase explícito. Usa `--descargas-clima ruta_a_descargas` si ya tienes guardadas las descargas meteorológicas.
+
+- [Salida histórica de San Borja a las 07:00](demostracion/san_borja_2024-11-15_07h.json).
+- Con una última medición de 13,35 µg/m³, `pm25-2` estima 16,09 µg/m³ para las 08:00. La lectura observada a las 08:00 fue 15,19 µg/m³ y queda fuera de la entrada a las 07:00.
+- La respuesta indica `HISTORICO`, incluye 24 posiciones horarias y conserva el hueco de las 02:00 como `null`. Si la estación carece de lectura a la hora de emisión, devuelve `SIN_PRONOSTICO` con `pronostico: null`.
+
+La demostración funciona con archivos locales. Sus [insumos](demostracion/insumos_2024-11-15.csv.gz) incluyen lecturas de SENAMHI vía OpenAQ y meteorología ERA5 e IFS del 8 al 15 de noviembre de 2024. La ventana empieza 168 horas antes de la primera emisión para calcular los rezagos. El módulo corta las entradas a la hora consultada y conserva la hora real de cálculo en `calculado_en`.
+
 ## Redis
 
 El almacenamiento usa Redis 8 con Redis Search. Las observaciones se guardan por estación y hora, las predicciones por estación, hora, horizonte y versión, y las ventanas históricas se indexan para recuperar sus vecinos más cercanos. El módulo de preguntas puede consultar las claves de métricas o recuperar episodios medidos similares a una emisión.
