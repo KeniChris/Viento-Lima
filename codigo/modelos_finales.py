@@ -19,6 +19,8 @@ from .viento import KEY, STATION, validate_hours
 
 MODELS = {1: "xgb_historia_mae", 3: "lstm_24h", 6: "lstm_24h"}
 VERSION = "pm25-1"
+TUNED_VERSION = "pm25-2"
+HOURLY_VERSIONS = (VERSION, TUNED_VERSION)
 
 
 @dataclass(frozen=True)
@@ -84,17 +86,21 @@ def configure_tensorflow(jobs):
     return tf
 
 
+def train_xgb(rows, jobs, sample_weight=None, *, parameters=None, version=VERSION):
+    columns = GROUPS[GROUP_BY_HOUR[1]] + HISTORY
+    base = next(spec for spec in candidates() if spec.name == "xgb_vecinos")
+    parameters = base.parameters | {"objective": "reg:absoluteerror"} | (parameters or {})
+    model = make_regressor(replace(base, parameters=parameters), jobs, columns)
+    change = rows[TARGET] - rows[CURRENT]
+    model.fit(rows[columns], change, xgbregressor__sample_weight=sample_weight)
+    return model, {"columnas": columns, "horizonte_h": 1, "modelo": MODELS[1],
+                   "version": version, "hiperparametros": parameters}
+
+
 def train_model(tf, rows, calendar, grid, horizon, jobs, sample_weight=None):
-    columns = GROUPS[GROUP_BY_HOUR[horizon]] + HISTORY
     if horizon == 1:
-        candidate = next(spec for spec in candidates() if spec.name == "xgb_vecinos")
-        candidate = replace(candidate, parameters=candidate.parameters | {"objective": "reg:absoluteerror"})
-        model = make_regressor(candidate, jobs, columns)
-        change = rows[TARGET] - rows[CURRENT]
-        model.fit(rows[columns], change, xgbregressor__sample_weight=sample_weight)
-        state = {"columnas": columns}
-    else:
-        model, state = fit_lstm(tf, rows, calendar, grid, horizon, sample_weight)
+        return train_xgb(rows, jobs, sample_weight)
+    model, state = fit_lstm(tf, rows, calendar, grid, horizon, sample_weight)
     return model, state | {"horizonte_h": horizon, "modelo": MODELS[horizon], "version": VERSION}
 
 
@@ -108,7 +114,7 @@ def predict(tf, bundle, rows, sequence=None):
 
 def save_bundle(directory, bundle):
     model, state = bundle
-    path = Path(directory) / VERSION / str(state["horizonte_h"])
+    path = Path(directory) / state["version"] / str(state["horizonte_h"])
     path.mkdir(parents=True, exist_ok=True)
     if state["horizonte_h"] == 1:
         transform, regressor = (step for _, step in model.steps)
@@ -125,11 +131,13 @@ def save_bundle(directory, bundle):
     )
 
 
-def load_bundle(tf, directory, horizon):
-    path = Path(directory) / VERSION / str(horizon)
+def load_bundle(tf, directory, horizon, *, version=VERSION):
+    if version != VERSION and (version != TUNED_VERSION or horizon != 1):
+        raise ValueError(f"Versión {version} no disponible para {horizon} h")
+    path = Path(directory) / version / str(horizon)
     state = json.loads((path / "transformaciones.json").read_text(encoding="utf-8"))
-    if (state["horizonte_h"], state["modelo"], state["version"]) != (horizon, MODELS[horizon], VERSION):
-        raise ValueError(f"El paquete de {horizon} h no corresponde a {VERSION}")
+    if (state["horizonte_h"], state["modelo"], state["version"]) != (horizon, MODELS[horizon], version):
+        raise ValueError(f"El paquete de {horizon} h no corresponde a {version}")
     transform = HourlyTransform(**state["transformador"])
     state["transformador"] = transform
     if horizon == 1:
