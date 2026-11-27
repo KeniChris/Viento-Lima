@@ -1,0 +1,151 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.selector {
+  min-width: 280px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+}
+
+.accion {
+  height: 56px;
+  padding: 0 20px;
+  font: var(--font-small);
+  border-radius: var(--radius-md);
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.aviso p {
+  margin: 0;
+}
+
+.aviso-error {
+  border-color: var(--state-error);
+  color: var(--state-error);
+}
+
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.tarjeta,
+.panel {
+  padding: 24px;
+  background: var(--bg-surface);
+}
+
+.tarjeta-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tarjeta-label {
+  margin: 0;
+  font: var(--font-caption);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tarjeta-valor {
+  margin: 8px 0 4px;
+  font: var(--font-display);
+  color: var(--primary-default);
+}
+
+.unidad {
+  font: var(--font-small);
+  color: var(--text-muted);
+}
+
+.tarjeta-nota {
+  margin: 0;
+  font: var(--font-body);
+}
+
+.tarjeta-detalle {
+  margin: 8px 0 0;
+  font: var(--font-small);
+  color: var(--text-muted);
+}
+
+.tarjeta-vacia {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+}
+
+.chip-demo {
+  --mat-chip-elevated-container-color: var(--bg-elevated);
+  --mat-chip-label-text-color: var(--primary-default);
+}
+
+.chip-vigente {
+  --mat-chip-elevated-container-color: #dcfce7;
+  --mat-chip-label-text-color: #166534;
+}
+
+.panel-title {
+  margin-bottom: 4px;
+}
+
+.panel-nota {
+  margin: 0 0 16px;
+  font: var(--font-small);
+  color: var(--text-muted);
+}
+
+.grafico {
+  position: relative;
+  height: 340px;
+}
+
+@media (max-width: 900px) {
+  .tarjetas {
+    grid-template-columns: 1fr;
+  }
+
+  .selector {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .accion {
+    flex: 1 1 100%;
+  }
+
+  .grafico {
+    height: 280px;
+  }
+}

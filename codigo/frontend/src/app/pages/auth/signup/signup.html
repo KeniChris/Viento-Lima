@@ -1,0 +1,53 @@
+<form class="form" [formGroup]="form" (ngSubmit)="crear()">
+  <h2 class="form-title">Crea tu cuenta</h2>
+  <p class="form-text">Regístrate en menos de un minuto.</p>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Correo electrónico</mat-label>
+    <input matInput type="email" formControlName="correo" autocomplete="email" placeholder="tu@correo.com" />
+    @if (form.controls.correo.hasError('required')) {
+      <mat-error>Ingresa tu correo electrónico</mat-error>
+    } @else if (form.controls.correo.hasError('email')) {
+      <mat-error>Ingresa un correo válido</mat-error>
+    } @else if (form.controls.correo.hasError('maxlength')) {
+      <mat-error>El correo admite como máximo 254 caracteres</mat-error>
+    } @else if (form.controls.correo.hasError('duplicado')) {
+      <mat-error>Ese correo ya está registrado</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Contraseña</mat-label>
+    <input matInput type="password" formControlName="contrasena" autocomplete="new-password" placeholder="Mínimo 10 caracteres" />
+    @if (form.controls.contrasena.hasError('required')) {
+      <mat-error>Ingresa una contraseña</mat-error>
+    } @else if (form.controls.contrasena.hasError('minlength')) {
+      <mat-error>La contraseña debe tener al menos 10 caracteres</mat-error>
+    } @else if (form.controls.contrasena.hasError('maxlength')) {
+      <mat-error>La contraseña admite como máximo 72 caracteres</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Confirmar contraseña</mat-label>
+    <input matInput type="password" formControlName="confirmar" autocomplete="new-password" placeholder="Repite la contraseña" />
+    @if (form.controls.confirmar.hasError('required')) {
+      <mat-error>Confirma tu contraseña</mat-error>
+    } @else if (form.controls.confirmar.hasError('noCoincide')) {
+      <mat-error>Las contraseñas no coinciden</mat-error>
+    }
+  </mat-form-field>
+
+  @if (error()) {
+    <p class="api-error">{{ error() }}</p>
+  }
+
+  <button mat-flat-button class="submit" type="submit" [disabled]="form.invalid || cargando()">
+    Crear cuenta
+  </button>
+
+  <p class="form-footer">
+    <span>¿Ya tienes cuenta?</span>
+    <a routerLink="/login">Inicia sesión</a>
+  </p>
+</form>
