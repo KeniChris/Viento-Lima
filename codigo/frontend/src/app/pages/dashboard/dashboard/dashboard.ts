@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ChartConfiguration } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { Subscription } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import { ConsultaPronostico } from '../../../core/models/consulta-pronostico.model';
 import { Estacion } from '../../../core/models/estacion.model';
 import { EstacionService } from '../../../core/services/estacion.service';
@@ -55,7 +56,7 @@ export class DashboardPage implements OnInit {
   estaciones = signal<Estacion[]>([]);
   consulta = signal<ConsultaPronostico | null>(null);
   // true mientras se muestra la demostración histórica
-  demostracion = signal(false);
+  demostracion = signal(environment.demostracionInicial);
   cargando = signal(false);
   error = signal('');
 

@@ -13,4 +13,9 @@ public record RegistroRequest(
         @NotBlank(message = "Ingresa una contraseña.")
         @Size(min = 10, max = 72, message = "La contraseña debe tener entre 10 y 72 caracteres.")
         String contrasena) {
+    public RegistroRequest {
+        if (correo != null) {
+            correo = correo.trim();
+        }
+    }
 }

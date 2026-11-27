@@ -14,7 +14,7 @@ spring:
   config:
     import: optional:file:.env[.properties]
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/viento_lima}
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:15432/viento_lima}
     username: ${DB_USERNAME:viento}
     password: ${DB_PASSWORD:viento}
   jpa:
@@ -30,10 +30,10 @@ spring:
 
 app:
   pm25:
-    # fixtures = datos de prueba del contrato OpenAPI | redis = lector real
-    fuente: ${PM25_FUENTE:fixtures}
+    # redis = pronósticos publicados por Python | fixtures = datos de prueba del contrato
+    fuente: ${PM25_FUENTE:redis}
     # ISO 8601 con offset. Vacío = hora real de America/Lima.
     reloj-fijo: ${PM25_RELOJ_FIJO:}
-    version-modelo: ${PM25_VERSION_MODELO:pm25-1}
+    version-modelo: ${PM25_MODELO_VERSION:${PM25_VERSION_MODELO:pm25-2}}
     # Horas hacia atrás que revisa el lector de Redis para la "última medición" (cargar_redis lee 168 h)
     busqueda-ultima-medicion-horas: 168

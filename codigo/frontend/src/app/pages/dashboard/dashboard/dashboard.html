@@ -1,6 +1,6 @@
 <header class="page-heading">
   <h1 class="page-title">Pronóstico de PM2.5</h1>
-  <p class="page-subtitle">Medición reciente, pronóstico a una hora e historial de 24 horas por estación.</p>
+  <p class="page-subtitle">Mediciones y pronóstico a una hora por estación.</p>
 </header>
 
 <form class="acciones" [formGroup]="form">
@@ -22,7 +22,7 @@
   </button>
   <button mat-stroked-button class="accion" type="button" [disabled]="cargando()" (click)="alternarDemostracion()">
     @if (demostracion()) {
-      Volver a datos actuales
+      Ver datos actuales
     } @else {
       Ver demostración histórica
     }
@@ -93,7 +93,7 @@
   </section>
 
   <mat-card class="panel" appearance="outlined">
-    <h2 class="panel-title">Últimas 24 horas</h2>
+    <h2 class="panel-title">{{ c.modo === 'HISTORICO' ? 'Historial de 24 horas' : 'Últimas 24 horas' }}</h2>
     <p class="panel-nota">Horas de Lima. Las horas sin lectura quedan como huecos en la línea.</p>
     @if (grafico(); as g) {
       <div class="grafico">

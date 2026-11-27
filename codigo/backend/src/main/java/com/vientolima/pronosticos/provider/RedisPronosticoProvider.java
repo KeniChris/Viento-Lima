@@ -19,18 +19,14 @@ import java.util.Optional;
 /**
  * LECTOR DE REDIS (listo para usar con {@code PM25_FUENTE=redis}).
  *
- * <p>Lee las claves que escribe {@code codigo/cargar_redis.py} (versión de modelo {@code pm25-1}):
+ * <p>Lee las claves que escribe {@code codigo/publicar_pm25.py} para la versión configurada:
  * <pre>
  *   pm25:observacion:&lt;version&gt;:&lt;ESTACION&gt;:&lt;segundos UTC&gt;       STRING JSON: PM2_5, fuente_pm25, fecha_unix…
  *   pm25:pronostico:&lt;version&gt;:&lt;ESTACION&gt;:&lt;segundos UTC&gt;:1h    HASH: emitido_en, objetivo_en, horizonte_h,
  *                                                                  modelo, version_modelo, pm25_estimado
  * </pre>
  * El instante de la clave es la hora de emisión (hora entera de Lima) en segundos UTC. Los campos sin medición
- * se guardan como null y se ignoran. Si el hash trae {@code calculado_en} (opcional, el cargador actual no lo
- * escribe) se devuelve; si no, queda null.
- *
- * <p>Pendiente al conectar: que el proceso de carga/pronóstico publique las claves de las horas recientes
- * (hoy {@code cargar_redis.py} carga el histórico 2017–2024 y pronostica una emisión por llamada).
+ * se guardan como null y se ignoran. El instante {@code calculado_en} puede faltar en datos antiguos.
  */
 @Component
 @ConditionalOnProperty(name = "app.pm25.fuente", havingValue = "redis")
@@ -43,7 +39,7 @@ public class RedisPronosticoProvider implements PronosticoProvider {
     private final int horasBusqueda;
 
     public RedisPronosticoProvider(StringRedisTemplate redis, JsonMapper json,
-                                   @Value("${app.pm25.version-modelo:pm25-1}") String version,
+                                   @Value("${app.pm25.version-modelo}") String version,
                                    @Value("${app.pm25.busqueda-ultima-medicion-horas:168}") int horasBusqueda) {
         this.redis = redis;
         this.json = json;
